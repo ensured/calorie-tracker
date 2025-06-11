@@ -1,103 +1,114 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import FoodSearch from './components/FoodSearch';
+import NutrientChart from './components/NutrientChart';
+import DailySummary from './components/DailySummary';
+import { ThemeToggle } from './components/theme-toggle';
+import { Button } from '@/components/ui/button';
+
+const queryClient = new QueryClient();
+
+interface Food {
+  name: string;
+  portion: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  vitaminA: number;
+  vitaminC: number;
+  calcium: number;
+  iron: number;
+  potassium: number;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [foods, setFoods] = useState<Food[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+  const addFood = (food: Food) => {
+    setFoods([...foods, food]);
+  };
+
+  const removeFood = (index: number) => {
+    setFoods(foods.filter((_, i) => i !== index));
+  };
+
+  const totals = foods.reduce(
+    (acc, food) => ({
+      calories: acc.calories + food.calories,
+      protein: acc.protein + food.protein,
+      carbs: acc.carbs + food.carbs,
+      fats: acc.fats + food.fats,
+      vitaminA: acc.vitaminA + food.vitaminA,
+      vitaminC: acc.vitaminC + food.vitaminC,
+      calcium: acc.calcium + food.calcium,
+      iron: acc.iron + food.iron,
+      potassium: acc.potassium + food.potassium,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fats: 0, vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0, potassium: 0 }
   );
-}
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <div className="min-h-screen bg-background text-foreground py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-4xl font-bold text-foreground">
+              🥗 Calorie & Nutrient Tracker
+            </h1>
+            <ThemeToggle />
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Food Input Section */}
+            <div className="bg-card text-card-foreground rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-semibold mb-4">Add Food</h2>
+              <p className="text-muted-foreground mb-4 text-sm">
+                💬 Use your keyboard&apos;s microphone to speak: &quot;half cup of blueberries&quot;
+              </p>
+              <FoodSearch onSelect={addFood} />
+              
+              {/* Food List */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Today&apos;s Foods</h3>
+                {foods.length === 0 ? (
+                  <p className="text-muted-foreground">No foods logged yet</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {foods.map((food, index) => (
+                      <li key={index} className="flex justify-between items-center bg-secondary/50 p-2 rounded">
+                        <span className="text-sm">
+                          {food.name} ({food.portion}) - {Math.round(food.calories)} kcal
+                        </span>
+                        <Button
+                          onClick={() => removeFood(index)}
+                          variant="destructive"
+                          size="sm"
+                        >
+                          Remove
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            {/* Nutrients Chart Section */}
+            <div className="bg-card text-card-foreground rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-semibold mb-4">Daily Nutrition</h2>
+              <NutrientChart nutrients={totals} />
+            </div>
+          </div>
+
+          {/* Daily Summary */}
+          <div className="mt-8">
+            <DailySummary totals={totals} />
+          </div>
+        </div>
+      </div>
+    </QueryClientProvider>
+  );
+} 
