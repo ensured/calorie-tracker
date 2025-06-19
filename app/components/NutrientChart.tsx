@@ -16,18 +16,17 @@ interface Nutrients {
   potassium: number;
 }
 
-// Daily Value references (for adults)
-const dailyValues = {
-  calories: 2000,
-  protein: 50,
-  carbs: 275,
-  fats: 78,
-  vitaminA: 900, // mcg
-  vitaminC: 90, // mg
-  calcium: 1000, // mg
-  iron: 18, // mg
-  potassium: 2500, // mg
-};
+interface DailyTargets {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  vitaminA: number;
+  vitaminC: number;
+  calcium: number;
+  iron: number;
+  potassium: number;
+}
 
 interface TooltipProps {
   active?: boolean;
@@ -43,73 +42,73 @@ interface TooltipProps {
   label?: string;
 }
 
-export default function NutrientChart({ nutrients }: { nutrients: Nutrients }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+export default function NutrientChart({ nutrients, dailyTargets }: { nutrients: Nutrients; dailyTargets: DailyTargets }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   const chartData = [
     {
       name: 'Calories',
-      value: Math.round((nutrients.calories / dailyValues.calories) * 100),
+      value: Math.round((nutrients.calories / dailyTargets.calories) * 100),
       actual: Math.round(nutrients.calories),
       unit: 'kcal',
-      dv: dailyValues.calories,
+      dv: dailyTargets.calories,
     },
     {
       name: 'Protein',
-      value: Math.round((nutrients.protein / dailyValues.protein) * 100),
+      value: Math.round((nutrients.protein / dailyTargets.protein) * 100),
       actual: Math.round(nutrients.protein * 10) / 10,
       unit: 'g',
-      dv: dailyValues.protein,
+      dv: dailyTargets.protein,
     },
     {
       name: 'Carbs',
-      value: Math.round((nutrients.carbs / dailyValues.carbs) * 100),
+      value: Math.round((nutrients.carbs / dailyTargets.carbs) * 100),
       actual: Math.round(nutrients.carbs * 10) / 10,
       unit: 'g',
-      dv: dailyValues.carbs,
+      dv: dailyTargets.carbs,
     },
     {
       name: 'Fats',
-      value: Math.round((nutrients.fats / dailyValues.fats) * 100),
+      value: Math.round((nutrients.fats / dailyTargets.fats) * 100),
       actual: Math.round(nutrients.fats * 10) / 10,
       unit: 'g',
-      dv: dailyValues.fats,
+      dv: dailyTargets.fats,
     },
     {
       name: 'Vitamin A',
-      value: Math.round((nutrients.vitaminA / dailyValues.vitaminA) * 100),
+      value: Math.round((nutrients.vitaminA / dailyTargets.vitaminA) * 100),
       actual: Math.round(nutrients.vitaminA * 10) / 10,
       unit: 'mcg',
-      dv: dailyValues.vitaminA,
+      dv: dailyTargets.vitaminA,
     },
     {
       name: 'Vitamin C',
-      value: Math.round((nutrients.vitaminC / dailyValues.vitaminC) * 100),
+      value: Math.round((nutrients.vitaminC / dailyTargets.vitaminC) * 100),
       actual: Math.round(nutrients.vitaminC * 10) / 10,
       unit: 'mg',
-      dv: dailyValues.vitaminC,
+      dv: dailyTargets.vitaminC,
     },
     {
       name: 'Calcium',
-      value: Math.round((nutrients.calcium / dailyValues.calcium) * 100),
+      value: Math.round((nutrients.calcium / dailyTargets.calcium) * 100),
       actual: Math.round(nutrients.calcium * 10) / 10,
       unit: 'mg',
-      dv: dailyValues.calcium,
+      dv: dailyTargets.calcium,
     },
     {
       name: 'Iron',
-      value: Math.round((nutrients.iron / dailyValues.iron) * 100),
+      value: Math.round((nutrients.iron / dailyTargets.iron) * 100),
       actual: Math.round(nutrients.iron * 10) / 10,
       unit: 'mg',
-      dv: dailyValues.iron,
+      dv: dailyTargets.iron,
     },
     {
       name: 'Potassium',
-      value: Math.round((nutrients.potassium / dailyValues.potassium) * 100),
+      value: Math.round((nutrients.potassium / dailyTargets.potassium) * 100),
       actual: Math.round(nutrients.potassium * 10) / 10,
       unit: 'mg',
-      dv: dailyValues.potassium,
+      dv: dailyTargets.potassium,
     },
   ];
 

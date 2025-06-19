@@ -15,19 +15,19 @@ interface Nutrients {
   potassium: number;
 }
 
-const dailyValues = {
-  calories: 2000,
-  protein: 50,
-  carbs: 275,
-  fats: 78,
-  vitaminA: 900,
-  vitaminC: 90,
-  calcium: 1000,
-  iron: 18,
-  potassium: 2500,
-};
+interface DailyTargets {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  vitaminA: number;
+  vitaminC: number;
+  calcium: number;
+  iron: number;
+  potassium: number;
+}
 
-export default function DailySummary({ totals }: { totals: Nutrients }) {
+export default function DailySummary({ totals, dailyTargets }: { totals: Nutrients; dailyTargets: DailyTargets }) {
   const macroCalories = (totals.protein * 4) + (totals.carbs * 4) + (totals.fats * 9);
   const proteinPercent = Math.round((totals.protein * 4) / Math.max(macroCalories, 1) * 100);
   const carbPercent = Math.round((totals.carbs * 4) / Math.max(macroCalories, 1) * 100);
@@ -67,7 +67,7 @@ export default function DailySummary({ totals }: { totals: Nutrients }) {
           </div>
           <div className="text-sm text-muted-foreground">calories consumed</div>
           <div className="text-xs text-muted-foreground mt-1">
-            {Math.round(dailyValues.calories - totals.calories)} remaining of {dailyValues.calories} goal
+            {Math.round(dailyTargets.calories - totals.calories)} remaining of {dailyTargets.calories} goal
           </div>
         </div>
       </div>
@@ -107,55 +107,55 @@ export default function DailySummary({ totals }: { totals: Nutrients }) {
         
         <ProgressBar 
           current={totals.calories} 
-          target={dailyValues.calories} 
+          target={dailyTargets.calories} 
           label="🔥 Calories" 
           unit="kcal" 
         />
         <ProgressBar 
           current={totals.protein} 
-          target={dailyValues.protein} 
+          target={dailyTargets.protein} 
           label="🍖 Protein" 
           unit="g" 
         />
         <ProgressBar 
           current={totals.carbs} 
-          target={dailyValues.carbs} 
+          target={dailyTargets.carbs} 
           label="🌾 Carbohydrates" 
           unit="g" 
         />
         <ProgressBar 
           current={totals.fats} 
-          target={dailyValues.fats} 
+          target={dailyTargets.fats} 
           label="🥑 Fats" 
           unit="g" 
         />
         <ProgressBar 
           current={totals.vitaminA} 
-          target={dailyValues.vitaminA} 
+          target={dailyTargets.vitaminA} 
           label="🥕 Vitamin A" 
           unit="mcg" 
         />
         <ProgressBar 
           current={totals.vitaminC} 
-          target={dailyValues.vitaminC} 
+          target={dailyTargets.vitaminC} 
           label="🍊 Vitamin C" 
           unit="mg" 
         />
         <ProgressBar 
           current={totals.calcium} 
-          target={dailyValues.calcium} 
+          target={dailyTargets.calcium} 
           label="🦴 Calcium" 
           unit="mg" 
         />
         <ProgressBar 
           current={totals.iron} 
-          target={dailyValues.iron} 
+          target={dailyTargets.iron} 
           label="⚡ Iron" 
           unit="mg" 
         />
         <ProgressBar 
           current={totals.potassium} 
-          target={dailyValues.potassium} 
+          target={dailyTargets.potassium} 
           label="🍌 Potassium" 
           unit="mg" 
         />
@@ -165,19 +165,19 @@ export default function DailySummary({ totals }: { totals: Nutrients }) {
       <div className="mt-6 p-4 bg-secondary/50 rounded-lg">
         <h4 className="font-semibold text-sm mb-2">💡 Tips</h4>
         <ul className="text-xs text-muted-foreground space-y-1">
-          {totals.vitaminC < dailyValues.vitaminC * 0.5 && (
+          {totals.vitaminC < dailyTargets.vitaminC * 0.5 && (
             <li>• Add citrus fruits, berries, or bell peppers for Vitamin C</li>
           )}
-          {totals.calcium < dailyValues.calcium * 0.5 && (
+          {totals.calcium < dailyTargets.calcium * 0.5 && (
             <li>• Include dairy, leafy greens, or fortified foods for calcium</li>
           )}
-          {totals.iron < dailyValues.iron * 0.5 && (
+          {totals.iron < dailyTargets.iron * 0.5 && (
             <li>• Add spinach, lean meat, or beans for iron</li>
           )}
-          {totals.protein < dailyValues.protein * 0.8 && (
+          {totals.protein < dailyTargets.protein * 0.8 && (
             <li>• Consider adding more protein sources like eggs, fish, or legumes</li>
           )}
-          {totals.potassium < dailyValues.potassium * 0.5 && (
+          {totals.potassium < dailyTargets.potassium * 0.5 && (
             <li>• Add bananas, potatoes, or spinach for potassium</li>
           )}
         </ul>

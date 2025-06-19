@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FoodSearch from './components/FoodSearch';
 import NutrientChart from './components/NutrientChart';
 import DailySummary from './components/DailySummary';
+import Settings from './components/Settings';
 import { ThemeToggle } from './components/theme-toggle';
 import { Button } from '@/components/ui/button';
 
@@ -24,8 +25,54 @@ interface Food {
   potassium: number;
 }
 
+interface DailyTargets {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  vitaminA: number;
+  vitaminC: number;
+  calcium: number;
+  iron: number;
+  potassium: number;
+}
+
+const defaultTargets: DailyTargets = {
+  calories: 2000,
+  protein: 50,
+  carbs: 275,
+  fats: 78,
+  vitaminA: 900,
+  vitaminC: 90,
+  calcium: 1000,
+  iron: 18,
+  potassium: 2500,
+};
+
 export default function Home() {
   const [foods, setFoods] = useState<Food[]>([]);
+  const [dailyTargets, setDailyTargets] = useState<DailyTargets>(defaultTargets);
+
+  // Load foods and targets from localStorage on component mount
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const savedFoods = localStorage.getItem(`foods_${today}`);
+    if (savedFoods) {
+      setFoods(JSON.parse(savedFoods));
+    }
+
+    // Load daily targets
+    const savedTargets = localStorage.getItem('dailyTargets');
+    if (savedTargets) {
+      setDailyTargets(JSON.parse(savedTargets));
+    }
+  }, []);
+
+  // Save foods to localStorage whenever foods change
+  useEffect(() => {
+    const today = new Date().toDateString();
+    localStorage.setItem(`foods_${today}`, JSON.stringify(foods));
+  }, [foods]);
 
   const addFood = (food: Food) => {
     setFoods([...foods, food]);
@@ -34,6 +81,10 @@ export default function Home() {
   const removeFood = (index: number) => {
     setFoods(foods.filter((_, i) => i !== index));
   };
+
+  const handleTargetsChange = useCallback((targets: DailyTargets) => {
+    setDailyTargets(targets);
+  }, []);
 
   const totals = foods.reduce(
     (acc, food) => ({
@@ -58,7 +109,10 @@ export default function Home() {
             <h1 className="text-4xl font-bold text-foreground">
               🥗 Calorie & Nutrient Tracker
             </h1>
-            <ThemeToggle />
+            <div className="flex gap-2">
+              <Settings onTargetsChange={handleTargetsChange} />
+              <ThemeToggle />
+            </div>
           </div>
           
           <div className="grid md:grid-cols-2 gap-8">
@@ -99,13 +153,13 @@ export default function Home() {
             {/* Nutrients Chart Section */}
             <div className="bg-card text-card-foreground rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-semibold mb-4">Daily Nutrition</h2>
-              <NutrientChart nutrients={totals} />
+              <NutrientChart nutrients={totals} dailyTargets={dailyTargets} />
             </div>
           </div>
 
           {/* Daily Summary */}
           <div className="mt-8">
-            <DailySummary totals={totals} />
+            <DailySummary totals={totals} dailyTargets={dailyTargets} />
           </div>
         </div>
       </div>
