@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +41,7 @@ export default function FoodSearch({ onSelect }: { onSelect: (food: Food) => voi
     for (const pattern of patterns) {
       const match = text.match(pattern);
       if (match) {
-        let [, quantityStr, unit, food] = match;
+        const [, quantityStr, unit, food] = match;
         
         // Convert word numbers to digits
         const wordToNumber: { [key: string]: number } = {
@@ -50,7 +49,7 @@ export default function FoodSearch({ onSelect }: { onSelect: (food: Food) => voi
           'a': 1, 'an': 1, 'quarter': 0.25, 'third': 0.33, 'three-quarters': 0.75
         };
         
-        let quantity = parseFloat(quantityStr) || wordToNumber[quantityStr.toLowerCase()] || 1;
+        const quantity = parseFloat(quantityStr) || wordToNumber[quantityStr.toLowerCase()] || 1;
         
         return { quantity, unit: unit.toLowerCase(), food: food.trim().toLowerCase() };
       }

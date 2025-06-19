@@ -1,174 +1,58 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-// Unit conversion table (portions to grams)
-const unitConversions: { [key: string]: { [key: string]: number } } = {
-  cup: {
-    blueberries: 148,
-    strawberries: 144,
-    rice: 195,
-    pasta: 220,
-    milk: 240,
-    water: 240,
-    flour: 125,
-    sugar: 200,
-    oats: 81,
-    spinach: 30,
-  },
-  tbsp: {
-    'peanut butter': 16,
-    'olive oil': 14,
-    honey: 21,
-    sugar: 12,
-    flour: 8,
-    butter: 14,
-  },
-  tsp: {
-    salt: 6,
-    sugar: 4,
-    'olive oil': 5,
-    vanilla: 4,
-  },
-  oz: {
-    'chicken breast': 28,
-    'ground beef': 28,
-    cheese: 28,
-    bread: 28,
-  },
-  g: {},
-  gram: {},
-  lb: {
-    'chicken breast': 454,
-    'ground beef': 454,
-  },
-  pound: {
-    'chicken breast': 454,
-    'ground beef': 454,
-  },
-};
-
-// Common foods database for quick lookup
-const commonFoods: { [key: string]: any } = {
-  apple: {
-    nutrients: {
-      ENERC_KCAL: { quantity: 52 },
-      PROCNT: { quantity: 0.26 },
-      CHOCDF: { quantity: 13.8 },
-      FAT: { quantity: 0.17 },
-      VITA_RAE: { quantity: 3 },
-      VITC: { quantity: 4.6 },
-      CA: { quantity: 6 },
-      FE: { quantity: 0.12 },
-      K: { quantity: 107 },
-    }
-  },
-  banana: {
-    nutrients: {
-      ENERC_KCAL: { quantity: 89 },
-      PROCNT: { quantity: 1.1 },
-      CHOCDF: { quantity: 22.8 },
-      FAT: { quantity: 0.33 },
-      VITA_RAE: { quantity: 3 },
-      VITC: { quantity: 8.7 },
-      CA: { quantity: 5 },
-      FE: { quantity: 0.26 },
-      K: { quantity: 358 },
-    }
-  },
-  blueberries: {
-    nutrients: {
-      ENERC_KCAL: { quantity: 57 },
-      PROCNT: { quantity: 0.74 },
-      CHOCDF: { quantity: 14.5 },
-      FAT: { quantity: 0.33 },
-      VITA_RAE: { quantity: 3 },
-      VITC: { quantity: 9.7 },
-      CA: { quantity: 6 },
-      FE: { quantity: 0.28 },
-      K: { quantity: 77 },
-    }
-  },
-  'chicken breast': {
-    nutrients: {
-      ENERC_KCAL: { quantity: 165 },
-      PROCNT: { quantity: 31 },
-      CHOCDF: { quantity: 0 },
-      FAT: { quantity: 3.6 },
-      VITA_RAE: { quantity: 6 },
-      VITC: { quantity: 0 },
-      CA: { quantity: 15 },
-      FE: { quantity: 0.89 },
-      K: { quantity: 256 },
-    }
-  },
-  'peanut butter': {
-    nutrients: {
-      ENERC_KCAL: { quantity: 588 },
-      PROCNT: { quantity: 25 },
-      CHOCDF: { quantity: 20 },
-      FAT: { quantity: 50 },
-      VITA_RAE: { quantity: 0 },
-      VITC: { quantity: 0 },
-      CA: { quantity: 43 },
-      FE: { quantity: 1.9 },
-      K: { quantity: 558 },
-    }
-  },
-};
-
-function convertToGrams(quantity: number, unit: string, food: string): number {
-  const normalizedUnit = unit.toLowerCase();
-  const normalizedFood = food.toLowerCase();
-  
-  if (normalizedUnit === 'g' || normalizedUnit === 'gram') {
-    return quantity;
-  }
-  
-  const conversion = unitConversions[normalizedUnit]?.[normalizedFood];
-  if (conversion) {
-    return quantity * conversion;
-  }
-  
-  // Default conversions if specific food not found
-  const defaultConversions: { [key: string]: number } = {
-    cup: 240, // ml/g for liquids
-    tbsp: 15,
-    tsp: 5,
-    oz: 28,
-    lb: 454,
-    pound: 454,
-  };
-  
-  return quantity * (defaultConversions[normalizedUnit] || 100);
+// TypeScript interfaces
+interface NutrientData {
+  quantity: number;
+  unit?: string;
 }
 
-function scaleNutrients(nutrients: any, grams: number): any {
-  // All nutrition data is per 100g, so scale accordingly
-  const scaleFactor = grams / 100;
-  
-  return {
-    name: 'Unknown',
-    portion: `${grams}g`,
-    calories: (nutrients.ENERC_KCAL?.quantity || 0) * scaleFactor,
-    protein: (nutrients.PROCNT?.quantity || 0) * scaleFactor,
-    carbs: (nutrients.CHOCDF?.quantity || 0) * scaleFactor,
-    fats: (nutrients.FAT?.quantity || 0) * scaleFactor,
-    vitaminA: (nutrients.VITA_RAE?.quantity || 0) * scaleFactor,
-    vitaminC: (nutrients.VITC?.quantity || 0) * scaleFactor,
-    calcium: (nutrients.CA?.quantity || 0) * scaleFactor,
-    iron: (nutrients.FE?.quantity || 0) * scaleFactor,
-    potassium: (nutrients.K?.quantity || 0) * scaleFactor,
-  };
+interface FoodNutrients {
+  ENERC_KCAL?: NutrientData;
+  PROCNT?: NutrientData;
+  CHOCDF?: NutrientData;
+  FAT?: NutrientData;
+  FIBTG?: NutrientData;
+  NA?: NutrientData;
+  SUGAR?: NutrientData;
+  VITA_RAE?: NutrientData;
+  VITC?: NutrientData;
+  CA?: NutrientData;
+  FE?: NutrientData;
+  K?: NutrientData;
 }
 
-// Helper function to detect if input is natural language
-function isNaturalLanguage(query: string, quantity: number, unit: string): boolean {
-  const naturalWords = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'a', 'an', 'some', 'slice', 'piece', 'serving'];
-  const fullQuery = `${quantity === 1 && unit === 'gram' ? '' : `${quantity} ${unit}`} ${query}`.toLowerCase();
-  
-  // Check if it contains natural language words or if quantity is 1 and unit is default (likely natural language)
-  return naturalWords.some(word => fullQuery.includes(word)) || 
-         (quantity === 1 && unit === 'gram' && !query.includes('gram'));
+interface EdamamFood {
+  foodId: string;
+  label: string;
+  measures?: Array<{
+    uri: string;
+    label: string;
+  }>;
+}
+
+interface EdamamMeasure {
+  uri: string;
+  label: string;
+}
+
+interface EdamamParsed {
+  food: EdamamFood;
+  quantity: number;
+  measure: EdamamMeasure;
+}
+
+interface EdamamHint {
+  food: EdamamFood;
+}
+
+interface EdamamSearchResponse {
+  parsed?: EdamamParsed[];
+  hints?: EdamamHint[];
+}
+
+interface EdamamNutrientsResponse {
+  totalNutrients?: FoodNutrients;
 }
 
 // Helper function to format input for better API parsing
@@ -259,7 +143,7 @@ export async function GET(request: Request) {
         
         try {
           // Step 1: Search for the food using parser endpoint
-          const searchResponse = await axios.get('https://api.edamam.com/api/food-database/v2/parser', {
+          const searchResponse = await axios.get<EdamamSearchResponse>('https://api.edamam.com/api/food-database/v2/parser', {
             params: {
               app_id: process.env.EDAMAM_APP_ID,
               app_key: process.env.EDAMAM_APP_KEY,
@@ -281,7 +165,7 @@ export async function GET(request: Request) {
             console.log('📏 Parsed quantity:', parsedQuantity, 'measure:', measure?.label);
 
             // Step 2: Get detailed nutrition using nutrients endpoint
-            const nutrientsResponse = await axios.post('https://api.edamam.com/api/food-database/v2/nutrients', {
+            const nutrientsResponse = await axios.post<EdamamNutrientsResponse>('https://api.edamam.com/api/food-database/v2/nutrients', {
               ingredients: [{
                 quantity: parsedQuantity,
                 measureURI: measure?.uri || "http://www.edamam.com/ontologies/edamam.owl#Measure_gram",
@@ -337,15 +221,15 @@ export async function GET(request: Request) {
               let selectedMeasure = null;
               
               if (searchQuery.includes('medium') || originalQuery.includes('apple')) {
-                selectedMeasure = food.measures.find((m: any) => m.label.toLowerCase().includes('medium'));
+                selectedMeasure = food.measures.find((m) => m.label.toLowerCase().includes('medium'));
               } else if (searchQuery.includes('slice')) {
-                selectedMeasure = food.measures.find((m: any) => m.label.toLowerCase().includes('slice'));
+                selectedMeasure = food.measures.find((m) => m.label.toLowerCase().includes('slice'));
               } else if (searchQuery.includes('cup')) {
-                selectedMeasure = food.measures.find((m: any) => m.label.toLowerCase().includes('cup'));
+                selectedMeasure = food.measures.find((m) => m.label.toLowerCase().includes('cup'));
               } else if (searchQuery.includes('tbsp')) {
-                selectedMeasure = food.measures.find((m: any) => m.label.toLowerCase().includes('tablespoon'));
+                selectedMeasure = food.measures.find((m) => m.label.toLowerCase().includes('tablespoon'));
               } else if (searchQuery.includes('tsp')) {
-                selectedMeasure = food.measures.find((m: any) => m.label.toLowerCase().includes('teaspoon'));
+                selectedMeasure = food.measures.find((m) => m.label.toLowerCase().includes('teaspoon'));
               }
               
               if (selectedMeasure) {
@@ -374,7 +258,7 @@ export async function GET(request: Request) {
             }
 
             // Get detailed nutrition
-            const nutrientsResponse = await axios.post('https://api.edamam.com/api/food-database/v2/nutrients', {
+            const nutrientsResponse = await axios.post<EdamamNutrientsResponse>('https://api.edamam.com/api/food-database/v2/nutrients', {
               ingredients: [{
                 quantity: estimatedQuantity,
                 measureURI: measureURI,
@@ -413,8 +297,9 @@ export async function GET(request: Request) {
               return NextResponse.json(scaledData);
             }
           }
-        } catch (variantError: any) {
-          console.log(`❌ Query variant "${searchQuery}" failed:`, variantError.response?.data || variantError.message);
+        } catch (variantError: unknown) {
+          const errorMessage = variantError instanceof Error ? variantError.message : 'Unknown error';
+          console.log(`❌ Query variant "${searchQuery}" failed:`, errorMessage);
           continue; // Try next variant
         }
       }
@@ -426,7 +311,7 @@ export async function GET(request: Request) {
     const fallbackQuery = formatForAPI(originalQuery, quantity, unit);
     
     // Improved estimates
-    const estimates: { [key: string]: any } = {
+    const estimates: { [key: string]: { calories: number; protein: number; carbs: number; fats: number } } = {
       apple: { calories: 95, protein: 0.5, carbs: 25, fats: 0.3 },
       pizza: { calories: 285, protein: 12, carbs: 36, fats: 10 },
       blueberries: { calories: 84, protein: 1.1, carbs: 21, fats: 0.5 }, // per cup
@@ -469,23 +354,10 @@ export async function GET(request: Request) {
     console.log('🔢 Estimated result:', estimatedData);
     return NextResponse.json(estimatedData);
 
-  } catch (error: any) {
-    console.error('💥 API Error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('💥 API Error:', errorMessage);
     
-    if (error.response?.status === 401) {
-      return NextResponse.json(
-        { error: 'Invalid API credentials. Please check your EDAMAM_APP_ID and EDAMAM_APP_KEY.' },
-        { status: 401 }
-      );
-    }
-    
-    if (error.response?.status === 429) {
-      return NextResponse.json(
-        { error: 'API rate limit exceeded. Please try again later.' },
-        { status: 429 }
-      );
-    }
-
     // Return helpful error message with examples
     return NextResponse.json(
       { 

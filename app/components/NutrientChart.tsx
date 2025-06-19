@@ -29,6 +29,20 @@ const dailyValues = {
   potassium: 2500, // mg
 };
 
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: {
+      name: string;
+      value: number;
+      actual: number;
+      unit: string;
+      dv: number;
+    };
+  }>;
+  label?: string;
+}
+
 export default function NutrientChart({ nutrients }: { nutrients: Nutrients }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -107,7 +121,7 @@ export default function NutrientChart({ nutrients }: { nutrients: Nutrients }) {
     return isDark ? '#15803d' : '#15803d'; // dark green
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (

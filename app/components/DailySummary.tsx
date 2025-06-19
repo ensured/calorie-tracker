@@ -33,15 +33,6 @@ export default function DailySummary({ totals }: { totals: Nutrients }) {
   const carbPercent = Math.round((totals.carbs * 4) / Math.max(macroCalories, 1) * 100);
   const fatPercent = Math.round((totals.fats * 9) / Math.max(macroCalories, 1) * 100);
 
-  const getProgressColor = (current: number, target: number) => {
-    const percent = (current / target) * 100;
-    if (percent < 25) return 'bg-destructive/70';
-    if (percent < 50) return 'bg-yellow-500';
-    if (percent < 75) return 'bg-yellow-400';
-    if (percent < 100) return 'bg-green-500';
-    return 'bg-green-600';
-  };
-
   const ProgressBar = ({ current, target, label, unit }: { 
     current: number; 
     target: number; 

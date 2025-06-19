@@ -18,7 +18,7 @@ export default function Error({
     <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
       <h1 className="text-4xl font-bold mb-4">Something went wrong!</h1>
       <p className="mb-6">
-        We've encountered an error processing your request.
+        We&apos;ve encountered an error processing your request.
       </p>
       <div className="flex gap-4">
         <button
