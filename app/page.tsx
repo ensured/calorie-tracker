@@ -8,7 +8,7 @@ import DailySummary from './components/DailySummary';
 import Settings from './components/Settings';
 import { ThemeToggle } from './components/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import axios from 'axios';
 
@@ -283,7 +283,7 @@ export default function Home() {
                       setFoods(updatedFoods);
                       setEditIndex(null);
                       setEditFood(null);
-                    } catch (err) {
+                    } catch {
                       setEditError('Failed to fetch food data. Please try again.');
                     } finally {
                       setEditLoading(false);
