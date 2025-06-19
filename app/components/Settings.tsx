@@ -67,8 +67,8 @@ export default function Settings({ onTargetsChange }: SettingsProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className='cursor-pointer ' >
-          ⚙️ Settings
+        <Button variant="outline" className='cursor-pointer' size='icon' >
+          ⚙️
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
