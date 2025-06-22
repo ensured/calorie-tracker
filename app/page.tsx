@@ -286,12 +286,12 @@ export default function Home() {
                   <div>
                     <label className="text-sm font-medium">Portion</label>
                     <div className="flex items-center gap-2">
-                      <Input
+                    <Input
                         value={editPortionValue}
                         onChange={e => setEditPortionValue(e.target.value)}
                         placeholder="e.g., 0.5"
-                        required
-                        disabled={editLoading}
+                      required
+                      disabled={editLoading}
                         type="number"
                         step="any"
                         aria-label="Portion quantity"

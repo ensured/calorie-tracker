@@ -110,6 +110,19 @@ export async function GET(request: Request) {
         if (quantityString !== String(quantity)) {
            queryVariants.push(`${quantity} ${unit} ${food}`);
         }
+        
+        // For fruits and common foods, try different unit variations
+        if (unit === 'piece') {
+          // Try with "medium" for fruits
+          if (['banana', 'apple', 'orange', 'pear', 'kiwi'].includes(food)) {
+            queryVariants.push(`${quantityString} medium ${food}`);
+            queryVariants.push(`${quantity} medium ${food}`);
+          }
+          // Try without unit for simple foods
+          queryVariants.push(`${quantityString} ${food}`);
+          queryVariants.push(`${quantity} ${food}`);
+        }
+        
         queryVariants.push(food); // Also try searching for just the food name
       }
 
@@ -283,6 +296,8 @@ export async function GET(request: Request) {
     const fallbackUnit = parsedForFallback?.unit || 'piece';
     const originalQuery = parsedForFallback?.food || rawQuery;
 
+    console.log('🔄 Using fallback estimation for:', { rawQuery, parsedForFallback, originalQuery });
+
     // Improved estimates
     const estimates: { [key: string]: { calories: number; protein: number; carbs: number; fats: number } } = {
       apple: { calories: 95, protein: 0.5, carbs: 25, fats: 0.3 },
@@ -291,10 +306,18 @@ export async function GET(request: Request) {
       'peanut butter': { calories: 94, protein: 4, carbs: 3, fats: 8 }, // per tbsp
       oats: { calories: 389, protein: 16.9, carbs: 66.3, fats: 6.9 }, // per 100g
       banana: { calories: 105, protein: 1.3, carbs: 27, fats: 0.4 },
+      orange: { calories: 62, protein: 1.2, carbs: 15, fats: 0.2 },
+      pear: { calories: 57, protein: 0.4, carbs: 15, fats: 0.1 },
+      kiwi: { calories: 42, protein: 0.8, carbs: 10, fats: 0.4 },
+      strawberry: { calories: 32, protein: 0.7, carbs: 8, fats: 0.3 },
+      grape: { calories: 62, protein: 0.6, carbs: 16, fats: 0.2 },
+      mango: { calories: 60, protein: 0.8, carbs: 15, fats: 0.4 },
     };
     
     const foodKey = originalQuery.toLowerCase().split(' ').find(word => estimates[word]) || 'default';
     const estimate = estimates[foodKey] || { calories: 100, protein: 3, carbs: 15, fats: 2 };
+    
+    console.log('🍎 Using estimate for:', foodKey, estimate);
     
     // Apply scaling for structured input
     let multiplier = 1;
@@ -326,6 +349,7 @@ export async function GET(request: Request) {
       potassium: 100,
     };
     
+    console.log('✅ Fallback result:', estimatedData);
     return NextResponse.json(estimatedData);
 
   } catch (error: unknown) {

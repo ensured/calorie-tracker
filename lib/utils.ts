@@ -11,13 +11,25 @@ export function parseInput(text: string) {
     // Match mixed numbers (e.g., 1 1/2 cup), fractions, decimals, and words
     /(\d+\s+\d+\/\d+|\d*\.?\d+|\d+\/\d+|\w+)\s*(slice|slices|piece|pieces|pc|clove|cloves|pinch|dashes|dash|milliliter|millilitre|milliliters|ml|cc|liter|litre|liters|l|fluid\sounce|fl\soz|pint|pints|pt|quart|quarts|qt|gallon|gallons|gal|milligram|mg|cup|cups|c|tbsp|tbsps|tablespoon|tablespoons|tb|tsp|tsps|teaspoon|teaspoons|t|ounce|ounces|oz|gram|grams|g|kilogram|kilograms|kg|kgs|pound|pounds|lb|lbs)\s*(?:of\s+)?([\w\s]*)/i,
     /(\w+)\s*(slice|slices|piece|pieces|pc|clove|cloves|pinch|dashes|dash|milliliter|millilitre|milliliters|ml|cc|liter|litre|liters|l|fluid\sounce|fl\soz|pint|pints|pt|quart|quarts|qt|gallon|gallons|gal|milligram|mg|cup|cups|c|tbsp|tbsps|tablespoon|tablespoons|tb|tsp|tsps|teaspoon|teaspoons|t|ounce|ounces|oz|gram|grams|g|kilogram|kilograms|kg|kgs|pound|pounds|lb|lbs)\s*(?:of\s+)?([\w\s]*)/i,
+    // New pattern for "1 banana" or "2 apples" (number followed directly by food)
+    /^(\d+\s+\d+\/\d+|\d*\.?\d+|\d+\/\d+|\w+)\s+([\w\s]+)$/i,
   ];
-  for (const pattern of patterns) {
+  
+  for (let i = 0; i < patterns.length; i++) {
+    const pattern = patterns[i];
     const match = text.match(pattern);
     if (match) {
       let quantityStr = match[1];
-      const unit = match[2];
-      const food = match[3] || '';
+      let unit = match[2];
+      let food = match[3] || '';
+      
+      // Handle the new pattern where no unit is specified
+      if (i === 2) {
+        // This is the "1 banana" pattern - no unit specified
+        unit = 'piece'; // Default to piece
+        food = match[2]; // The food name is in match[2] for this pattern
+      }
+      
       let quantity: number;
       const wordToNumber: { [key: string]: number } = {
         'half': 0.5, 'halves': 0.5,
