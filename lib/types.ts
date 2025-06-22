@@ -9,6 +9,9 @@ export interface Food {
   protein: number;
   carbs: number;
   fats: number;
+  fiber: number;
+  sodium: number;
+  sugar: number;
   vitaminA: number;
   vitaminC: number;
   calcium: number;
@@ -26,4 +29,7 @@ export interface DailyTargets {
   calcium: number;
   iron: number;
   potassium: number;
-} 
+}
+
+export type AllNutrients = keyof Omit<Food, 'name' | 'portion' | 'unit'>;
+export type TargetNutrient = keyof DailyTargets; 

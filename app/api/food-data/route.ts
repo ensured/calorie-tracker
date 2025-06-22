@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import Fraction from 'fraction.js';
+import { parseInput } from '@/lib/utils';
 
 // TypeScript interfaces
 interface NutrientData {
@@ -56,6 +57,52 @@ interface EdamamNutrientsResponse {
   totalNutrients?: FoodNutrients;
 }
 
+// New types for Recipe Search API
+interface Recipe {
+  label: string;
+  image: string;
+  source: string;
+  url: string;
+  yield: number;
+  dietLabels: string[];
+  healthLabels: string[];
+  ingredientLines: string[];
+  ingredients: RecipeIngredient[];
+  calories: number;
+  totalWeight: number;
+  totalNutrients: FoodNutrients;
+}
+
+interface RecipeIngredient {
+  text: string;
+  quantity: number;
+  measure: string | null;
+  food: string;
+  weight: number;
+  foodCategory: string;
+  foodId: string;
+  image: string | null;
+}
+
+interface RecipeHit {
+  recipe: Recipe;
+}
+
+interface EdamamRecipeSearchResponse {
+  from: number;
+  to: number;
+  count: number;
+  _links: { next?: { href: string; title: string; } };
+  hits: RecipeHit[];
+}
+
+interface SearchRecipeOptions {
+  mealType: string;
+  calories?: string;
+  diet?: string;
+  to?: number;
+}
+
 const unitNormalizationMap: { [key: string]: string } = {
   'cup': 'cup', 'cups': 'cup', 'c': 'cup',
   'tablespoon': 'tbsp', 'tablespoons': 'tbsp', 'tbsp': 'tbsp', 'tbsps': 'tbsp', 'tb': 'tbsp',
@@ -83,62 +130,78 @@ function normalizeUnit(unit: string): string {
   return unitNormalizationMap[lowerUnit] || lowerUnit;
 }
 
-// Helper function to format input for better API parsing
-function formatForAPI(query: string, quantity: number, unit: string): string {
-  const cleanQuery = query.toLowerCase().trim();
+// New function to search for recipes
+export async function searchRecipes(options: SearchRecipeOptions) {
+  if (!process.env.EDAMAM_RECIPE_SEARCH_APP_ID || !process.env.EDAMAM_RECIPE_SEARCH_KEY) {
+    throw new Error("Missing Edamam API credentials in environment variables.");
+  }
 
-  // Use fraction.js to get a precise representation
-  const frac = new Fraction(quantity);
+  const params = {
+    type: 'public',
+    app_id: process.env.EDAMAM_RECIPE_SEARCH_APP_ID,
+    app_key: process.env.EDAMAM_RECIPE_SEARCH_KEY,
+    ...options
+  };
 
-  // If the fraction is simple (denominator < 100), use the fraction string like "1/3"
-  // Otherwise, for complex decimals, use the decimal value rounded to 3 places.
-  const quantityString = frac.d < 100 ? frac.toFraction(true) : quantity.toFixed(3);
+  const searchResponse = await axios.get<EdamamRecipeSearchResponse>('https://api.edamam.com/api/recipes/v2', { params });
 
-  return `${quantityString} ${unit} ${cleanQuery}`;
+  if (searchResponse.data.hits.length === 0) {
+    throw new Error('No recipes found for the given criteria.');
+  }
+  
+  return searchResponse.data.hits;
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const originalQuery = searchParams.get('query') || '';
-  const quantity = parseFloat(searchParams.get('quantity') || '1');
-  const unit = searchParams.get('unit')?.toLowerCase() || 'gram';
+  const rawQuery = searchParams.get('query')?.trim() || '';
 
+  if (!rawQuery) {
+    return NextResponse.json({ error: 'Query parameter is missing' }, { status: 400 });
+  }
 
   try {
-    if (process.env.EDAMAM_APP_ID && process.env.EDAMAM_APP_KEY) {
-      
-      // Format the query for better API compatibility
-      const formattedQuery = formatForAPI(originalQuery, quantity, unit);
+    if (process.env.EDAMAM_RECIPE_SEARCH_APP_ID && process.env.EDAMAM_RECIPE_SEARCH_KEY) {
+      // Create a tiered list of query variants
+      const queryVariants = [rawQuery];
+      const parsed = parseInput(rawQuery);
+      const quantity = parsed?.quantity || 1;
+      const unit = parsed?.unit || 'piece';
 
-      // Try multiple query formats if the first one fails
-      const queryVariants = [
-        formattedQuery,
-        `${quantity} ${unit} of ${originalQuery}`,
-        `${quantity} ${unit} ${originalQuery}`,
-        originalQuery
-      ].filter((q, index, arr) => arr.indexOf(q) === index); // Remove duplicates
+      if (parsed) {
+        const { food } = parsed;
+        const frac = new Fraction(quantity);
+        const quantityString = frac.d < 100 ? frac.toFraction(true) : quantity.toFixed(3);
 
-      for (const searchQuery of queryVariants) {
-        
+        // Add more specific variants if parsing was successful
+        queryVariants.push(`${quantityString} ${unit} ${food}`);
+        if (quantityString !== String(quantity)) {
+           queryVariants.push(`${quantity} ${unit} ${food}`);
+        }
+        queryVariants.push(food); // Also try searching for just the food name
+      }
+
+      // Remove duplicates and filter out empty strings
+      const uniqueQueryVariants = [...new Set(queryVariants)].filter(Boolean);
+
+      for (const searchQuery of uniqueQueryVariants) {
         try {
           // Step 1: Search for the food using parser endpoint
           const searchResponse = await axios.get<EdamamSearchResponse>('https://api.edamam.com/api/food-database/v2/parser', {
             params: {
-              app_id: process.env.EDAMAM_APP_ID,
-              app_key: process.env.EDAMAM_APP_KEY,
+              app_id: process.env.EDAMAM_RECIPE_SEARCH_APP_ID,
+              app_key: process.env.EDAMAM_RECIPE_SEARCH_KEY,
               ingr: searchQuery,
               'nutrition-type': 'logging',
             },
           });
 
-
           // Try parsed results first (most accurate)
           if (searchResponse.data.parsed && searchResponse.data.parsed.length > 0) {
-            const parsed = searchResponse.data.parsed[0];
-            const food = parsed.food;
-            const measure = parsed.measure;
-            const parsedQuantity = parsed.quantity || quantity;
-
+            const parsedResponse = searchResponse.data.parsed[0];
+            const food = parsedResponse.food;
+            const measure = parsedResponse.measure;
+            const parsedQuantity = parsedResponse.quantity || quantity;
 
             // Step 2: Get detailed nutrition using nutrients endpoint
             const nutrientsResponse = await axios.post<EdamamNutrientsResponse>('https://api.edamam.com/api/food-database/v2/nutrients', {
@@ -149,20 +212,19 @@ export async function GET(request: Request) {
               }]
             }, {
               params: {
-                app_id: process.env.EDAMAM_APP_ID,
-                app_key: process.env.EDAMAM_APP_KEY,
+                app_id: process.env.EDAMAM_RECIPE_SEARCH_APP_ID,
+                app_key: process.env.EDAMAM_RECIPE_SEARCH_KEY,
               },
               headers: {
                 'Content-Type': 'application/json',
               }
             });
 
-
             if (nutrientsResponse.data && nutrientsResponse.data.totalNutrients) {
               const nutrients = nutrientsResponse.data.totalNutrients;
               const unnormalizedUnit = measure?.label || unit;
               const scaledData = {
-                name: food.label || originalQuery,
+                name: food.label || searchQuery,
                 portion: measure?.label ? `${parsedQuantity} ${measure.label}` : searchQuery,
                 quantity: parsedQuantity,
                 unit: normalizeUnit(unnormalizedUnit),
@@ -198,7 +260,7 @@ export async function GET(request: Request) {
               // Look for specific measures based on the query
               let selectedMeasure = null;
               
-              if (searchQuery.includes('medium') || originalQuery.includes('apple')) {
+              if (searchQuery.includes('medium') || rawQuery.includes('apple')) {
                 selectedMeasure = food.measures.find((m) => m.label.toLowerCase().includes('medium'));
               } else if (searchQuery.includes('slice')) {
                 selectedMeasure = food.measures.find((m) => m.label.toLowerCase().includes('slice'));
@@ -227,7 +289,7 @@ export async function GET(request: Request) {
                   'cup': 240, 'tbsp': 15, 'tsp': 5, 'oz': 28, 'lb': 454, 'pound': 454,
                 };
                 
-                if (originalQuery.includes('oat')) conversions['cup'] = 81;
+                if (rawQuery.includes('oat')) conversions['cup'] = 81;
                 grams = quantity * (conversions[unit] || 100);
               }
               estimatedQuantity = grams;
@@ -243,8 +305,8 @@ export async function GET(request: Request) {
               }]
             }, {
               params: {
-                app_id: process.env.EDAMAM_APP_ID,
-                app_key: process.env.EDAMAM_APP_KEY,
+                app_id: process.env.EDAMAM_RECIPE_SEARCH_APP_ID,
+                app_key: process.env.EDAMAM_RECIPE_SEARCH_KEY,
               },
               headers: {
                 'Content-Type': 'application/json',
@@ -254,7 +316,7 @@ export async function GET(request: Request) {
             if (nutrientsResponse.data && nutrientsResponse.data.totalNutrients) {
               const nutrients = nutrientsResponse.data.totalNutrients;
               const scaledData = {
-                name: food.label || originalQuery,
+                name: food.label || searchQuery,
                 portion: searchQuery,
                 quantity: estimatedQuantity,
                 unit: normalizeUnit(measureLabel),
@@ -283,10 +345,12 @@ export async function GET(request: Request) {
       }
     }
 
-    
-    // Format query for fallback
-    const fallbackQuery = formatForAPI(originalQuery, quantity, unit);
-    
+    // Fallback estimation logic if API fails
+    const parsedForFallback = parseInput(rawQuery);
+    const fallbackQuantity = parsedForFallback?.quantity || 1;
+    const fallbackUnit = parsedForFallback?.unit || 'piece';
+    const originalQuery = parsedForFallback?.food || rawQuery;
+
     // Improved estimates
     const estimates: { [key: string]: { calories: number; protein: number; carbs: number; fats: number } } = {
       apple: { calories: 95, protein: 0.5, carbs: 25, fats: 0.3 },
@@ -302,20 +366,20 @@ export async function GET(request: Request) {
     
     // Apply scaling for structured input
     let multiplier = 1;
-    if (unit !== 'gram') {
-      if (unit === 'cup' && originalQuery.includes('oat')) multiplier = quantity * 0.81;
-      else if (unit === 'cup') multiplier = quantity;
-      else if (unit === 'tbsp') multiplier = quantity;
-      else multiplier = quantity;
+    if (fallbackUnit !== 'gram') {
+      if (fallbackUnit === 'cup' && originalQuery.includes('oat')) multiplier = fallbackQuantity * 0.81;
+      else if (fallbackUnit === 'cup') multiplier = fallbackQuantity;
+      else if (fallbackUnit === 'tbsp') multiplier = fallbackQuantity;
+      else multiplier = fallbackQuantity;
     } else {
-      multiplier = quantity / 100; // Assume per 100g
+      multiplier = fallbackQuantity / 100; // Assume per 100g
     }
     
     const estimatedData = {
       name: `${originalQuery} (estimated)`,
-      portion: fallbackQuery,
-      quantity: quantity,
-      unit: normalizeUnit(unit),
+      portion: rawQuery,
+      quantity: fallbackQuantity,
+      unit: normalizeUnit(fallbackUnit),
       calories: Math.round(estimate.calories * multiplier),
       protein: Math.round(estimate.protein * multiplier * 10) / 10,
       carbs: Math.round(estimate.carbs * multiplier * 10) / 10,

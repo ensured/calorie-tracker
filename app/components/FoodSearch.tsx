@@ -9,15 +9,20 @@ import { Food } from '@/lib/types';
 import { Plus, ChevronDown, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const fetchFoodData = async (query: string, quantity: number, unit: string): Promise<Food> => {
+interface FoodSearchProps {
+  input: string;
+  setInput: (value: string) => void;
+  onSelect: (food: Food) => void;
+}
+
+const fetchFoodData = async (query: string): Promise<Food> => {
   const response = await axios.get('/api/food-data', {
-    params: { query, quantity, unit },
+    params: { query },
   });
   return response.data;
 };
 
-export default function FoodSearch({ onSelect }: { onSelect: (food: Food) => void }) {
-  const [input, setInput] = useState('');
+export default function FoodSearch({ input, setInput, onSelect }: FoodSearchProps) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showExamples, setShowExamples] = useState(false);
@@ -25,23 +30,21 @@ export default function FoodSearch({ onSelect }: { onSelect: (food: Food) => voi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!input.trim()) return;
     setIsLoading(true);
 
-    const parsed = parseInput(input);
-    if (!parsed) {
-      setError('Could not parse input. Try "1/2 cup blueberries" or "1 tbsp peanut butter"');
+    if (!input.trim()) {
+      setError('Please enter a food.');
       setIsLoading(false);
       return;
     }
 
     try {
-      const foodData = await fetchFoodData(parsed.food, parsed.quantity, parsed.unit);
+      const foodData = await fetchFoodData(input);
       onSelect(foodData);
-      setInput('');
     } catch (err) {
       console.error('Food fetch error:', err);
-      setError('Failed to fetch food data. Please try again.');
+      const errorMessage = (err as any).response?.data?.error || 'Failed to find food. Please try a different query.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -14,6 +14,7 @@ import axios from 'axios';
 import { parseInput, formatDateKey } from '@/lib/utils';
 import FoodList from './components/FoodList';
 import { Food, DailyTargets } from '@/lib/types';
+import RecommendationDialog from './components/RecommendationDialog';
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ export default function Home() {
   const [editPortionUnit, setEditPortionUnit] = useState('');
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+  const [foodSearchInput, setFoodSearchInput] = useState('');
 
   // Load foods and targets from localStorage on component mount or when selectedDate changes
   useEffect(() => {
@@ -85,7 +87,12 @@ export default function Home() {
   }, [foods, selectedDate]);
 
   const addFood = (food: Food) => {
-    setFoods([...foods, food]);
+    setFoods(prevFoods => [...prevFoods, food]);
+    setFoodSearchInput(''); // Clear input after adding food
+  };
+
+  const handleAddMeal = (newFoods: Food[]) => {
+    setFoods(prevFoods => [...prevFoods, ...newFoods]);
   };
 
   const removeFood = (index: number) => {
@@ -167,9 +174,9 @@ export default function Home() {
     setEditFood({ ...editFood, [key]: key === 'name' || key === 'portion' ? value : parseFloat(value) || 0 });
   };
 
-  const fetchFoodData = async (query: string, quantity: number, unit: string) => {
+  const fetchFoodData = async (query: string) => {
     const response = await axios.get('/api/food-data', {
-      params: { query, quantity, unit },
+      params: { query },
     });
     return response.data;
   };
@@ -205,7 +212,11 @@ export default function Home() {
             <div className="bg-card text-card-foreground rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-semibold mb-4">Add Food</h2>
             
-              <FoodSearch onSelect={addFood} />
+              <FoodSearch 
+                input={foodSearchInput}
+                setInput={setFoodSearchInput}
+                onSelect={addFood} 
+              />
 
               <FoodList
                 foods={foods}
@@ -219,6 +230,11 @@ export default function Home() {
             <div className="bg-card text-card-foreground rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-semibold mb-4">Daily Nutrition</h2>
               <NutrientChart nutrients={totals} dailyTargets={dailyTargets} />
+              {/* <RecommendationDialog 
+                dailyTargets={dailyTargets}
+                currentTotals={totals}
+                onAddMeal={handleAddMeal}
+              /> */}
             </div>
           </div>
 
@@ -245,7 +261,8 @@ export default function Home() {
                     }
 
                     try {
-                      const foodData = await fetchFoodData(editFood.name, quantity, editPortionUnit);
+                      const query = `${quantity} ${editPortionUnit} ${editFood.name}`;
+                      const foodData = await fetchFoodData(query);
                       const updatedFoods = foods.map((f, i) => (i === editIndex ? foodData : f));
                       setFoods(updatedFoods);
                       setEditIndex(null);
