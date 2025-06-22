@@ -106,10 +106,10 @@ function formatForAPI(query: string, quantity: number, unit: string): string {
   
   const normalizedUnit = unitMap[unit] || unit;
   
-  // Use fractions for common amounts
-  if (quantity === 0.5) return `half ${normalizedUnit} ${cleanQuery}`;
-  if (quantity === 0.25) return `quarter ${normalizedUnit} ${cleanQuery}`;
-  if (quantity === 0.33) return `third ${normalizedUnit} ${cleanQuery}`;
+  // Use fractions for common amounts (with tolerance)
+  if (Math.abs(quantity - 0.5) < 0.01) return `half ${normalizedUnit} ${cleanQuery}`;
+  if (Math.abs(quantity - 0.25) < 0.01) return `quarter ${normalizedUnit} ${cleanQuery}`;
+  if (Math.abs(quantity - 1/3) < 0.02) return `third ${normalizedUnit} ${cleanQuery}`;
   
   return `${quantity} ${normalizedUnit} ${cleanQuery}`;
 }
@@ -159,8 +159,22 @@ export async function GET(request: Request) {
             const parsed = searchResponse.data.parsed[0];
             const food = parsed.food;
             const measure = parsed.measure;
-            const parsedQuantity = parsed.quantity || quantity;
-            
+            let parsedQuantity = parsed.quantity || quantity;
+
+            // --- Fraction override logic ---
+            // If the original quantity is a common fraction and Edamam misinterprets it, override
+            const isFraction = (val: number, target: number, tol = 0.02) => Math.abs(val - target) < tol;
+            if (
+              (isFraction(quantity, 1/3) && parsedQuantity === 3) ||
+              (isFraction(quantity, 1/4) && parsedQuantity === 4) ||
+              (isFraction(quantity, 3/4) && parsedQuantity === 3) || // Edamam sometimes returns 3 for 3/4
+              (isFraction(quantity, 2/3) && parsedQuantity === 2) ||
+              (isFraction(quantity, 1/2) && parsedQuantity === 2) // Sometimes 2 for 1/2
+            ) {
+              parsedQuantity = quantity;
+            }
+            // --- End fraction override logic ---
+
             console.log('✅ Found parsed result:', food.label);
             console.log('📏 Parsed quantity:', parsedQuantity, 'measure:', measure?.label);
 
