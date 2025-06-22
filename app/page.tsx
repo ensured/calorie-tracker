@@ -177,6 +177,7 @@ export default function Home() {
       const match = text.match(pattern);
       if (match) {
         let [ , quantityStr, unit, food ] = match;
+        let quantity: number;
         const wordToNumber: { [key: string]: number } = {
           'half': 0.5, 'halves': 0.5,
           'third': 1/3, 'thirds': 1/3,
@@ -195,7 +196,6 @@ export default function Home() {
           'three-quarters': 0.75, 'three-fourths': 0.75, 'two-thirds': 2/3, 'three-fifths': 0.6, 'three-eighths': 0.375, 'two-fifths': 0.4, 'five-eighths': 0.625, 'seven-eighths': 0.875
         };
         // --- Mixed number parsing ---
-        let quantity: number;
         quantityStr = quantityStr.trim();
         if (/^\d+\s+\d+\/\d+$/.test(quantityStr)) {
           // e.g., "1 1/2"
