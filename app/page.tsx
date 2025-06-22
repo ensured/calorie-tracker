@@ -14,7 +14,7 @@ import axios from 'axios';
 import { parseInput, formatDateKey } from '@/lib/utils';
 import FoodList from './components/FoodList';
 import { Food, DailyTargets } from '@/lib/types';
-// import RecommendationDialog from './components/RecommendationDialog';
+import RecommendationDialog from './components/RecommendationDialog';
 
 const queryClient = new QueryClient();
 
@@ -87,13 +87,9 @@ export default function Home() {
   }, [foods, selectedDate]);
 
   const addFood = (food: Food) => {
-    setFoods(prevFoods => [...prevFoods, food]);
+    setFoods([...foods, food]);
     setFoodSearchInput(''); // Clear input after adding food
   };
-
-  // const handleAddMeal = (newFoods: Food[]) => {
-  //   setFoods(prevFoods => [...prevFoods, ...newFoods]);
-  // };
 
   const removeFood = (index: number) => {
     setFoods(foods.filter((_, i) => i !== index));
@@ -230,11 +226,11 @@ export default function Home() {
             <div className="bg-card text-card-foreground rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-semibold mb-4">Daily Nutrition</h2>
               <NutrientChart nutrients={totals} dailyTargets={dailyTargets} />
-              {/* <RecommendationDialog 
+              <RecommendationDialog 
+                totals={totals}
                 dailyTargets={dailyTargets}
-                currentTotals={totals}
-                onAddMeal={handleAddMeal}
-              /> */}
+                onSuggest={setFoodSearchInput}
+              />
             </div>
           </div>
 

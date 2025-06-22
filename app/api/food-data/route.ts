@@ -57,52 +57,6 @@ interface EdamamNutrientsResponse {
   totalNutrients?: FoodNutrients;
 }
 
-// New types for Recipe Search API
-interface Recipe {
-  label: string;
-  image: string;
-  source: string;
-  url: string;
-  yield: number;
-  dietLabels: string[];
-  healthLabels: string[];
-  ingredientLines: string[];
-  ingredients: RecipeIngredient[];
-  calories: number;
-  totalWeight: number;
-  totalNutrients: FoodNutrients;
-}
-
-interface RecipeIngredient {
-  text: string;
-  quantity: number;
-  measure: string | null;
-  food: string;
-  weight: number;
-  foodCategory: string;
-  foodId: string;
-  image: string | null;
-}
-
-interface RecipeHit {
-  recipe: Recipe;
-}
-
-interface EdamamRecipeSearchResponse {
-  from: number;
-  to: number;
-  count: number;
-  _links: { next?: { href: string; title: string; } };
-  hits: RecipeHit[];
-}
-
-interface SearchRecipeOptions {
-  mealType: string;
-  calories?: string;
-  diet?: string;
-  to?: number;
-}
-
 const unitNormalizationMap: { [key: string]: string } = {
   'cup': 'cup', 'cups': 'cup', 'c': 'cup',
   'tablespoon': 'tbsp', 'tablespoons': 'tbsp', 'tbsp': 'tbsp', 'tbsps': 'tbsp', 'tb': 'tbsp',
@@ -130,28 +84,6 @@ function normalizeUnit(unit: string): string {
   return unitNormalizationMap[lowerUnit] || lowerUnit;
 }
 
-// New function to search for recipes
-export async function searchRecipes(options: SearchRecipeOptions) {
-  if (!process.env.EDAMAM_RECIPE_SEARCH_APP_ID || !process.env.EDAMAM_RECIPE_SEARCH_KEY) {
-    throw new Error("Missing Edamam API credentials in environment variables.");
-  }
-
-  const params = {
-    type: 'public',
-    app_id: process.env.EDAMAM_RECIPE_SEARCH_APP_ID,
-    app_key: process.env.EDAMAM_RECIPE_SEARCH_KEY,
-    ...options
-  };
-
-  const searchResponse = await axios.get<EdamamRecipeSearchResponse>('https://api.edamam.com/api/recipes/v2', { params });
-
-  if (searchResponse.data.hits.length === 0) {
-    throw new Error('No recipes found for the given criteria.');
-  }
-  
-  return searchResponse.data.hits;
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const rawQuery = searchParams.get('query')?.trim() || '';
@@ -161,7 +93,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    if (process.env.EDAMAM_RECIPE_SEARCH_APP_ID && process.env.EDAMAM_RECIPE_SEARCH_KEY) {
+    if (process.env.EDAMAM_APP_ID && process.env.EDAMAM_APP_KEY) {
       // Create a tiered list of query variants
       const queryVariants = [rawQuery];
       const parsed = parseInput(rawQuery);
@@ -189,8 +121,8 @@ export async function GET(request: Request) {
           // Step 1: Search for the food using parser endpoint
           const searchResponse = await axios.get<EdamamSearchResponse>('https://api.edamam.com/api/food-database/v2/parser', {
             params: {
-              app_id: process.env.EDAMAM_RECIPE_SEARCH_APP_ID,
-              app_key: process.env.EDAMAM_RECIPE_SEARCH_KEY,
+              app_id: process.env.EDAMAM_APP_ID,
+              app_key: process.env.EDAMAM_APP_KEY,
               ingr: searchQuery,
               'nutrition-type': 'logging',
             },
@@ -212,8 +144,8 @@ export async function GET(request: Request) {
               }]
             }, {
               params: {
-                app_id: process.env.EDAMAM_RECIPE_SEARCH_APP_ID,
-                app_key: process.env.EDAMAM_RECIPE_SEARCH_KEY,
+                app_id: process.env.EDAMAM_APP_ID,
+                app_key: process.env.EDAMAM_APP_KEY,
               },
               headers: {
                 'Content-Type': 'application/json',
@@ -305,8 +237,8 @@ export async function GET(request: Request) {
               }]
             }, {
               params: {
-                app_id: process.env.EDAMAM_RECIPE_SEARCH_APP_ID,
-                app_key: process.env.EDAMAM_RECIPE_SEARCH_KEY,
+                app_id: process.env.EDAMAM_APP_ID,
+                app_key: process.env.EDAMAM_APP_KEY,
               },
               headers: {
                 'Content-Type': 'application/json',
