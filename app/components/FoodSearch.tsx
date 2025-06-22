@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // import { parseInput } from '@/lib/utils';
 import { Food } from '@/lib/types';
-import { Plus, ChevronDown, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import {  ChevronDown, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FoodSearchProps {
