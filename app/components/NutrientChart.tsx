@@ -3,20 +3,9 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useTheme } from 'next-themes';
+import { DailyTargets } from '@/lib/types';
 
 interface Nutrients {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  vitaminA: number;
-  vitaminC: number;
-  calcium: number;
-  iron: number;
-  potassium: number;
-}
-
-interface DailyTargets {
   calories: number;
   protein: number;
   carbs: number;

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import Fraction from 'fraction.js';
 
 // TypeScript interfaces
 interface NutrientData {
@@ -55,63 +56,45 @@ interface EdamamNutrientsResponse {
   totalNutrients?: FoodNutrients;
 }
 
+const unitNormalizationMap: { [key: string]: string } = {
+  'cup': 'cup', 'cups': 'cup', 'c': 'cup',
+  'tablespoon': 'tbsp', 'tablespoons': 'tbsp', 'tbsp': 'tbsp', 'tbsps': 'tbsp', 'tb': 'tbsp',
+  'teaspoon': 'tsp', 'teaspoons': 'tsp', 'tsp': 'tsp', 'tsps': 'tsp', 't': 'tsp',
+  'ounce': 'oz', 'ounces': 'oz', 'oz': 'oz',
+  'gram': 'g', 'grams': 'g', 'g': 'g',
+  'kilogram': 'kg', 'kilograms': 'kg', 'kg': 'kg', 'kgs': 'kg',
+  'pound': 'lb', 'pounds': 'lb', 'lb': 'lb', 'lbs': 'lb',
+  'milligram': 'mg', 'mg': 'mg',
+  'milliliter': 'ml', 'milliliters': 'ml', 'millilitre': 'ml', 'ml': 'ml', 'cc': 'ml',
+  'liter': 'l', 'liters': 'l', 'litre': 'l', 'l': 'l',
+  'fluid ounce': 'fl oz', 'fl oz': 'fl oz',
+  'pint': 'pt', 'pints': 'pt', 'pt': 'pt',
+  'quart': 'qt', 'quarts': 'qt', 'qt': 'qt',
+  'gallon': 'gal', 'gallons': 'gal', 'gal': 'gal',
+  'slice': 'slice', 'slices': 'slice',
+  'piece': 'piece', 'pieces': 'piece', 'pc': 'piece',
+  'clove': 'clove', 'cloves': 'clove',
+  'pinch': 'pinch', 'pinches': 'pinch',
+  'dash': 'dash', 'dashes': 'dash',
+};
+
+function normalizeUnit(unit: string): string {
+  const lowerUnit = unit.toLowerCase();
+  return unitNormalizationMap[lowerUnit] || lowerUnit;
+}
+
 // Helper function to format input for better API parsing
 function formatForAPI(query: string, quantity: number, unit: string): string {
   const cleanQuery = query.toLowerCase().trim();
-  
-  // Handle word numbers
-  const wordToNumber: { [key: string]: string } = {
-    'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
-    'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
-    'half': '0.5', 'quarter': '0.25', 'third': '0.33'
-  };
-  
-  // Convert word numbers to digits
-  let formattedQuery = cleanQuery;
-  Object.entries(wordToNumber).forEach(([word, number]) => {
-    formattedQuery = formattedQuery.replace(new RegExp(`\\b${word}\\b`, 'g'), number);
-  });
-  
-  // If the query already looks natural (contains quantity words), use as-is
-  if (formattedQuery.match(/\b\d*\.?\d+\s+(cup|tbsp|tsp|oz|slice|piece|medium|large|small)\b/) || 
-      cleanQuery.includes('cup') || cleanQuery.includes('tbsp') || cleanQuery.includes('slice')) {
-    return formattedQuery;
-  }
-  
-  // Otherwise, format it properly
-  if (quantity === 1 && unit === 'gram') {
-    // Likely natural language like "apple" -> "1 medium apple"
-    if (cleanQuery === 'apple') return '1 medium apple';
-    if (cleanQuery === 'banana') return '1 medium banana';
-    if (cleanQuery === 'orange') return '1 medium orange';
-    if (cleanQuery.includes('pizza')) return '1 slice pizza';
-    return `1 ${cleanQuery}`;
-  }
-  
-  // Format structured input properly
-  const unitMap: { [key: string]: string } = {
-    'gram': 'g',
-    'grams': 'g',
-    'cup': 'cup',
-    'cups': 'cup',
-    'tablespoon': 'tbsp',
-    'tablespoons': 'tbsp',
-    'teaspoon': 'tsp',
-    'teaspoons': 'tsp',
-    'ounce': 'oz',
-    'ounces': 'oz',
-    'pound': 'lb',
-    'pounds': 'lb'
-  };
-  
-  const normalizedUnit = unitMap[unit] || unit;
-  
-  // Use fractions for common amounts (with tolerance)
-  if (Math.abs(quantity - 0.5) < 0.01) return `half ${normalizedUnit} ${cleanQuery}`;
-  if (Math.abs(quantity - 0.25) < 0.01) return `quarter ${normalizedUnit} ${cleanQuery}`;
-  if (Math.abs(quantity - 1/3) < 0.02) return `third ${normalizedUnit} ${cleanQuery}`;
-  
-  return `${quantity} ${normalizedUnit} ${cleanQuery}`;
+
+  // Use fraction.js to get a precise representation
+  const frac = new Fraction(quantity);
+
+  // If the fraction is simple (denominator < 100), use the fraction string like "1/3"
+  // Otherwise, for complex decimals, use the decimal value rounded to 3 places.
+  const quantityString = frac.d < 100 ? frac.toFraction(true) : quantity.toFixed(3);
+
+  return `${quantityString} ${unit} ${cleanQuery}`;
 }
 
 export async function GET(request: Request) {
@@ -120,15 +103,12 @@ export async function GET(request: Request) {
   const quantity = parseFloat(searchParams.get('quantity') || '1');
   const unit = searchParams.get('unit')?.toLowerCase() || 'gram';
 
-  console.log(`🔍 Original input: "${originalQuery}", quantity: ${quantity}, unit: ${unit}`);
 
   try {
     if (process.env.EDAMAM_APP_ID && process.env.EDAMAM_APP_KEY) {
-      console.log('🌐 Using Edamam Food Database API...');
       
       // Format the query for better API compatibility
       const formattedQuery = formatForAPI(originalQuery, quantity, unit);
-      console.log(`📝 Formatted query: "${formattedQuery}"`);
 
       // Try multiple query formats if the first one fails
       const queryVariants = [
@@ -139,7 +119,6 @@ export async function GET(request: Request) {
       ].filter((q, index, arr) => arr.indexOf(q) === index); // Remove duplicates
 
       for (const searchQuery of queryVariants) {
-        console.log(`🎯 Trying query variant: "${searchQuery}"`);
         
         try {
           // Step 1: Search for the food using parser endpoint
@@ -152,31 +131,14 @@ export async function GET(request: Request) {
             },
           });
 
-          console.log(`📊 Search response for "${searchQuery}":`, JSON.stringify(searchResponse.data, null, 2));
 
           // Try parsed results first (most accurate)
           if (searchResponse.data.parsed && searchResponse.data.parsed.length > 0) {
             const parsed = searchResponse.data.parsed[0];
             const food = parsed.food;
             const measure = parsed.measure;
-            let parsedQuantity = parsed.quantity || quantity;
+            const parsedQuantity = parsed.quantity || quantity;
 
-            // --- Fraction override logic ---
-            // If the original quantity is a common fraction and Edamam misinterprets it, override
-            const isFraction = (val: number, target: number, tol = 0.02) => Math.abs(val - target) < tol;
-            if (
-              (isFraction(quantity, 1/3) && parsedQuantity === 3) ||
-              (isFraction(quantity, 1/4) && parsedQuantity === 4) ||
-              (isFraction(quantity, 3/4) && parsedQuantity === 3) || // Edamam sometimes returns 3 for 3/4
-              (isFraction(quantity, 2/3) && parsedQuantity === 2) ||
-              (isFraction(quantity, 1/2) && parsedQuantity === 2) // Sometimes 2 for 1/2
-            ) {
-              parsedQuantity = quantity;
-            }
-            // --- End fraction override logic ---
-
-            console.log('✅ Found parsed result:', food.label);
-            console.log('📏 Parsed quantity:', parsedQuantity, 'measure:', measure?.label);
 
             // Step 2: Get detailed nutrition using nutrients endpoint
             const nutrientsResponse = await axios.post<EdamamNutrientsResponse>('https://api.edamam.com/api/food-database/v2/nutrients', {
@@ -195,13 +157,15 @@ export async function GET(request: Request) {
               }
             });
 
-            console.log('🥗 Nutrients response:', JSON.stringify(nutrientsResponse.data, null, 2));
 
             if (nutrientsResponse.data && nutrientsResponse.data.totalNutrients) {
               const nutrients = nutrientsResponse.data.totalNutrients;
+              const unnormalizedUnit = measure?.label || unit;
               const scaledData = {
                 name: food.label || originalQuery,
                 portion: measure?.label ? `${parsedQuantity} ${measure.label}` : searchQuery,
+                quantity: parsedQuantity,
+                unit: normalizeUnit(unnormalizedUnit),
                 calories: Math.round(nutrients.ENERC_KCAL?.quantity || 0),
                 protein: Math.round((nutrients.PROCNT?.quantity || 0) * 10) / 10,
                 carbs: Math.round((nutrients.CHOCDF?.quantity || 0) * 10) / 10,
@@ -223,13 +187,13 @@ export async function GET(request: Request) {
 
           // Try hints if parsed didn't work
           if (searchResponse.data.hints && searchResponse.data.hints.length > 0) {
-            console.log('🔄 Trying hints fallback...');
             const food = searchResponse.data.hints[0].food;
             
             // Smart measure selection
             let estimatedQuantity = quantity;
             let measureURI = "http://www.edamam.com/ontologies/edamam.owl#Measure_gram";
-            
+            let measureLabel = 'gram'; // Default unit label
+
             if (food.measures && food.measures.length > 0) {
               // Look for specific measures based on the query
               let selectedMeasure = null;
@@ -247,14 +211,13 @@ export async function GET(request: Request) {
               }
               
               if (selectedMeasure) {
-                estimatedQuantity = quantity;
                 measureURI = selectedMeasure.uri;
-                console.log('📏 Using selected measure:', selectedMeasure.label);
+                measureLabel = selectedMeasure.label;
               } else {
                 // Use first available measure
                 const firstMeasure = food.measures[0];
                 measureURI = firstMeasure?.uri || measureURI;
-                console.log('📏 Using first available measure:', firstMeasure?.label);
+                measureLabel = firstMeasure?.label || measureLabel;
               }
             } else {
               // Convert to grams
@@ -293,6 +256,8 @@ export async function GET(request: Request) {
               const scaledData = {
                 name: food.label || originalQuery,
                 portion: searchQuery,
+                quantity: estimatedQuantity,
+                unit: normalizeUnit(measureLabel),
                 calories: Math.round(nutrients.ENERC_KCAL?.quantity || 0),
                 protein: Math.round((nutrients.PROCNT?.quantity || 0) * 10) / 10,
                 carbs: Math.round((nutrients.CHOCDF?.quantity || 0) * 10) / 10,
@@ -313,13 +278,11 @@ export async function GET(request: Request) {
           }
         } catch (variantError: unknown) {
           const errorMessage = variantError instanceof Error ? variantError.message : 'Unknown error';
-          console.log(`❌ Query variant "${searchQuery}" failed:`, errorMessage);
           continue; // Try next variant
         }
       }
     }
 
-    console.log('⚠️ All API attempts failed, using estimates...');
     
     // Format query for fallback
     const fallbackQuery = formatForAPI(originalQuery, quantity, unit);
@@ -351,6 +314,8 @@ export async function GET(request: Request) {
     const estimatedData = {
       name: `${originalQuery} (estimated)`,
       portion: fallbackQuery,
+      quantity: quantity,
+      unit: normalizeUnit(unit),
       calories: Math.round(estimate.calories * multiplier),
       protein: Math.round(estimate.protein * multiplier * 10) / 10,
       carbs: Math.round(estimate.carbs * multiplier * 10) / 10,
@@ -365,7 +330,6 @@ export async function GET(request: Request) {
       potassium: 100,
     };
     
-    console.log('🔢 Estimated result:', estimatedData);
     return NextResponse.json(estimatedData);
 
   } catch (error: unknown) {

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { SettingsIcon } from 'lucide-react';
 
 interface DailyTargets {
   calories: number;
@@ -68,7 +69,7 @@ export default function Settings({ onTargetsChange }: SettingsProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className='cursor-pointer' size='icon' >
-          ⚙️
+          <SettingsIcon className='size-5' />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
