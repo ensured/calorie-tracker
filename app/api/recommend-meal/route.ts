@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { searchRecipes } from '../food-data/route';
-import { Food, DailyTargets } from '@/lib/types';
+import { Food } from '@/lib/types';
+// import { DailyTargets } from '@/lib/types';
 
 // This is a simplified version of the nutrient structure from the food-data route
 interface NutrientData {
@@ -23,6 +24,12 @@ interface FoodNutrients {
     K?: NutrientData;
 }
 
+interface SearchOptions {
+    mealType: string;
+    calories: string;
+    to: number;
+    diet?: string;
+}
 
 function extractNutrients(totalNutrients: FoodNutrients, totalWeight: number, yieldCount: number): Partial<Food> {
     const scale = 1 / (yieldCount || 1);
@@ -43,7 +50,6 @@ function extractNutrients(totalNutrients: FoodNutrients, totalWeight: number, yi
     };
 }
 
-
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const mealType = searchParams.get('mealType') || 'Lunch'; // Default to Lunch
@@ -60,7 +66,7 @@ export async function GET(request: Request) {
         const calorieTarget = remainingCalories / mealsLeft;
         const calorieRange = `${Math.max(0, calorieTarget * 0.8)}-${calorieTarget * 1.2}`;
         
-        const options: any = { // Using `any` because SearchRecipeOptions is in another file
+        const options: SearchOptions = {
             mealType: mealType,
             calories: calorieRange,
             to: 100, // Fetch up to 100 recipes
