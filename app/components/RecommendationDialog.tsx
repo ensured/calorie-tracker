@@ -373,7 +373,7 @@ export default function RecommendationDialog({ totals, dailyTargets, onSuggest }
                         <TrendingUp className={`h-5 w-5 ${getNutrientColor(deficit.percentage)}`} />
                         {formatNutrientName(String(deficit.name))}
                         {deficit.isMacro && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ">
                             Macro
                             <TooltipProvider>
                               <Tooltip>
@@ -388,7 +388,7 @@ export default function RecommendationDialog({ totals, dailyTargets, onSuggest }
                           </span>
                         )}
                         {!deficit.isMacro && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium y">
                             Micro
                             <TooltipProvider>
                               <Tooltip>
