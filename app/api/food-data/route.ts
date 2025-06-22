@@ -277,7 +277,7 @@ export async function GET(request: Request) {
             }
           }
         } catch (variantError: unknown) {
-          const errorMessage = variantError instanceof Error ? variantError.message : 'Unknown error';
+          console.log(`❌ Query variant "${searchQuery}" failed:`, variantError);
           continue; // Try next variant
         }
       }

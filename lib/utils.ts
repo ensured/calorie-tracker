@@ -15,7 +15,9 @@ export function parseInput(text: string) {
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
-      let [ , quantityStr, unit, food ] = match;
+      let quantityStr = match[1];
+      const unit = match[2];
+      const food = match[3] || '';
       let quantity: number;
       const wordToNumber: { [key: string]: number } = {
         'half': 0.5, 'halves': 0.5,

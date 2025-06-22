@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import axios from 'axios';
-import { parseInput, formatPortion, formatDateKey } from '@/lib/utils';
+import { parseInput, formatDateKey } from '@/lib/utils';
 import FoodList from './components/FoodList';
 import { Food, DailyTargets } from '@/lib/types';
 
