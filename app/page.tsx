@@ -183,7 +183,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
             <h1 className="xl:text-3xl md:text-2xl  text-xl font-bold text-foreground">
-              🥗 Calorie & Micros/Macros Tracker
+              🥗 Calories/Micros/Macros Tracker
             </h1>
             <div className="flex gap-2">
               <Settings onTargetsChange={handleTargetsChange} />
