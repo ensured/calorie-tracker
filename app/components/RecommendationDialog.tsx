@@ -39,6 +39,46 @@ interface FoodSuggestion {
 }
 
 const foodSuggestions: { [key: string]: FoodSuggestion[] } = {
+  calories: [
+    // Quick options
+    { name: 'Banana (1 medium)', query: '1 medium banana', category: 'quick', estimatedDeficitFill: 8 },
+    { name: 'Apple (1 medium)', query: '1 medium apple', category: 'quick', estimatedDeficitFill: 6 },
+    { name: 'Orange (1 medium)', query: '1 medium orange', category: 'quick', estimatedDeficitFill: 5 },
+    { name: 'Greek Yogurt (1 cup)', query: '1 cup greek yogurt', category: 'quick', estimatedDeficitFill: 12 },
+    { name: 'Cottage Cheese (1 cup)', query: '1 cup cottage cheese', category: 'quick', estimatedDeficitFill: 10 },
+    { name: 'Hard Boiled Eggs (2)', query: '2 hard boiled eggs', category: 'quick', estimatedDeficitFill: 9 },
+    { name: 'Tuna Packet', query: '1 packet tuna', category: 'quick', estimatedDeficitFill: 11 },
+    { name: 'Edamame (1 cup)', query: '1 cup edamame', category: 'quick', estimatedDeficitFill: 13 },
+    { name: 'Skyr Yogurt (1 cup)', query: '1 cup skyr yogurt', category: 'quick', estimatedDeficitFill: 14 },
+    { name: 'Turkey Slices (3 oz)', query: '3 oz turkey slices', category: 'quick', estimatedDeficitFill: 15 },
+    { name: 'Canned Salmon (3 oz)', query: '3 oz canned salmon', category: 'quick', estimatedDeficitFill: 16 },
+    { name: 'Tempeh (1/2 cup)', query: '1/2 cup tempeh', category: 'quick', estimatedDeficitFill: 12 },
+    
+    // Cooking options
+    { name: 'Chicken Breast (6oz)', query: '6 oz chicken breast', category: 'cooking', estimatedDeficitFill: 25 },
+    { name: 'Salmon Fillet (4oz)', query: '4 oz salmon', category: 'cooking', estimatedDeficitFill: 22 },
+    { name: 'Lean Beef (4oz)', query: '4 oz lean beef', category: 'cooking', estimatedDeficitFill: 28 },
+    { name: 'Tofu (1/2 block)', query: '1/2 block tofu', category: 'cooking', estimatedDeficitFill: 18 },
+    { name: 'Lentils (1 cup)', query: '1 cup lentils', category: 'cooking', estimatedDeficitFill: 20 },
+    { name: 'Quinoa (1 cup)', query: '1 cup quinoa', category: 'cooking', estimatedDeficitFill: 16 },
+    { name: 'Pork Tenderloin (4oz)', query: '4 oz pork tenderloin', category: 'cooking', estimatedDeficitFill: 26 },
+    { name: 'Cod Fillet (4oz)', query: '4 oz cod fillet', category: 'cooking', estimatedDeficitFill: 20 },
+    { name: 'Black Beans (1 cup)', query: '1 cup black beans', category: 'cooking', estimatedDeficitFill: 18 },
+    { name: 'Chickpeas (1 cup)', query: '1 cup chickpeas', category: 'cooking', estimatedDeficitFill: 16 },
+    { name: 'Shrimp (4oz)', query: '4 oz shrimp', category: 'cooking', estimatedDeficitFill: 19 },
+    { name: 'Turkey Breast (4oz)', query: '4 oz turkey breast', category: 'cooking', estimatedDeficitFill: 24 },
+    
+    // Snacks
+    { name: 'Almonds (1/4 cup)', query: '1/4 cup almonds', category: 'snack', estimatedDeficitFill: 14 },
+    { name: 'Peanut Butter (2 tbsp)', query: '2 tbsp peanut butter', category: 'snack', estimatedDeficitFill: 16 },
+    { name: 'String Cheese', query: '1 string cheese', category: 'snack', estimatedDeficitFill: 8 },
+    { name: 'Hummus (1/4 cup)', query: '1/4 cup hummus', category: 'snack', estimatedDeficitFill: 10 },
+    { name: 'Pistachios (1/4 cup)', query: '1/4 cup pistachios', category: 'snack', estimatedDeficitFill: 12 },
+    { name: 'Cashews (1/4 cup)', query: '1/4 cup cashews', category: 'snack', estimatedDeficitFill: 13 },
+    { name: 'Sunflower Seeds (1/4 cup)', query: '1/4 cup sunflower seeds', category: 'snack', estimatedDeficitFill: 11 },
+    { name: 'Pumpkin Seeds (1/4 cup)', query: '1/4 cup pumpkin seeds', category: 'snack', estimatedDeficitFill: 15 },
+    { name: 'Beef Jerky (1 oz)', query: '1 oz beef jerky', category: 'snack', estimatedDeficitFill: 17 },
+  ],
   protein: [
     // Quick options
     { name: 'Greek Yogurt (1 cup)', query: '1 cup greek yogurt', category: 'quick', estimatedDeficitFill: 15 },
@@ -256,7 +296,7 @@ function getNutrientColor(percentage: number) {
   if (percentage >= 100) return 'text-green-600';
   if (percentage >= 80) return 'text-yellow-600';
   if (percentage >= 60) return 'text-orange-600';
-  return 'text-red-600';
+  return 'text-red-500';
 }
 
 // function getProgressColor(percentage: number) {
@@ -281,7 +321,7 @@ export default function RecommendationDialog({ totals, dailyTargets, onSuggest }
   const [showMicroInfo, setShowMicroInfo] = useState(false);
 
   // Separate macros and micros for better prioritization
-  const macroNutrients = ['protein', 'carbs', 'fats'];
+  const macroNutrients = ['calories', 'protein', 'carbs', 'fats'];
 
   const getDeficits = () => {
     const allDeficits = Object.keys(dailyTargets)
@@ -316,18 +356,23 @@ export default function RecommendationDialog({ totals, dailyTargets, onSuggest }
         !!item.suggestions
       );
 
-    // Prioritize macros (show if < 100%) and then most deficient micros
-    const macroDeficits = allDeficits
-      .filter(item => item.isMacro && item.percentage < 100)
+    console.log('All deficits before sorting:', allDeficits.map(d => ({ 
+      name: d.name, 
+      percentage: d.percentage, 
+      hasSuggestions: !!d.suggestions,
+      suggestionCount: d.suggestions?.length || 0
+    })));
+    
+    // Sort all deficits by percentage (lowest first) - most urgently needed at top
+    const sorted = allDeficits
       .sort((a, b) => a.percentage - b.percentage);
-
-    const microDeficits = allDeficits
-      .filter(item => !item.isMacro && item.percentage < 95)
-      .sort((a, b) => a.percentage - b.percentage)
-      .slice(0, 3); // Limit to top 3 micro deficits
-
-    // Combine: macros first, then micros
-    return [...macroDeficits, ...microDeficits].slice(0, 5);
+    
+    console.log('Sorted deficits:', sorted.map(d => ({ 
+      name: d.name, 
+      percentage: d.percentage 
+    })));
+    
+    return sorted;
   };
 
   const deficits = getDeficits();
@@ -508,6 +553,59 @@ export default function RecommendationDialog({ totals, dailyTargets, onSuggest }
                   </div>
                 </div>
               ))}
+
+              {/* Summary Section */}
+              <div className="bg-muted/30 border border-border rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Daily Progress Summary
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Macros */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Macros</h5>
+                    {Object.keys(dailyTargets)
+                      .filter(key => macroNutrients.includes(key))
+                      .map((key) => {
+                        const nutrientKey = key as keyof Totals;
+                        const target = dailyTargets[nutrientKey as keyof DailyTargets] || 0;
+                        const current = totals[nutrientKey] || 0;
+                        const percentage = target > 0 ? (current / target) * 100 : 0;
+                        
+                        return (
+                          <div key={key} className="flex justify-between items-center text-sm">
+                            <span className="text-foreground">{formatNutrientName(key)}</span>
+                            <span className={`font-medium ${getNutrientColor(percentage)}`}>
+                              {Math.round(percentage)}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                  
+                  {/* Micros */}
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Micros</h5>
+                    {Object.keys(dailyTargets)
+                      .filter(key => !macroNutrients.includes(key))
+                      .map((key) => {
+                        const nutrientKey = key as keyof Totals;
+                        const target = dailyTargets[nutrientKey as keyof DailyTargets] || 0;
+                        const current = totals[nutrientKey] || 0;
+                        const percentage = target > 0 ? (current / target) * 100 : 0;
+                        
+                        return (
+                          <div key={key} className="flex justify-between items-center text-sm">
+                            <span className="text-foreground">{formatNutrientName(key)}</span>
+                            <span className={`font-medium ${getNutrientColor(percentage)}`}>
+                              {Math.round(percentage)}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="py-12 text-center">
