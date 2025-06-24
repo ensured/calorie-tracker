@@ -44,7 +44,7 @@ export default function NutrientChart({ nutrients, dailyTargets }: { nutrients: 
   if (!isClient) {
     return (
       <div className="w-full">
-        <div className="h-64 mb-4 animate-pulse bg-zinc-200 dark:bg-zinc-800 rounded-md w-full" />
+        <div className="h-74 mb-2 animate-pulse bg-zinc-200 dark:bg-zinc-800 rounded-md w-full" />
         <div className="grid grid-cols-2 gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded h-16" />
@@ -148,7 +148,7 @@ export default function NutrientChart({ nutrients, dailyTargets }: { nutrients: 
 
   return (
     <div className="w-full">
-      <div className="h-64 mb-4">
+      <div className="h-74 mb-2">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -164,6 +164,8 @@ export default function NutrientChart({ nutrients, dailyTargets }: { nutrients: 
               label={{ value: '% Daily Value', angle: -90, position: 'insideLeft', fill: isDark ? 'white' : 'black' }}
               fontSize={12}
               tick={{ fill: isDark ? 'white' : 'black' }}
+
+
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
