@@ -78,9 +78,9 @@ const CustomHeatmap: React.FC<CustomHeatmapProps> = ({ values, selectedDate, onS
         <TooltipProvider delayDuration={50}>
             <div className="relative w-full" style={{ height: '9.6rem' }}>
                 {/* Absolutely positioned weekday labels */}
-                <div style={{ position: 'absolute', left: '-32px', top: '-7px', height: '100%', display: 'flex', flexDirection: 'column', gap: '4px', justifyContent: 'center', pointerEvents: 'none' }}>
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'].map((label, i) => (
-                        <div key={i} style={{ height: '16px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: '10px', color: 'var(--muted-foreground)', userSelect: 'none', paddingRight: '4px' }}>
+                <div style={{ position: 'absolute', left: '-30px', top: '-8px', height: '100%', display: 'flex', flexDirection: 'column', gap: '4px', justifyContent: 'center', pointerEvents: 'none' }}>
+                    {['', 'Tues', '', 'Thur', '', 'Sat', ''].map((label, i) => (
+                        <div key={i} style={{ height: '16px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: '9px', color: 'var(--muted-foreground)', userSelect: 'none', paddingRight: '4px' }}>
                             {label}
                         </div>
                     ))}

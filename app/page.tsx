@@ -67,7 +67,7 @@ export default function Home() {
   const foodInputRef = useRef<HTMLInputElement>(null);
   const autoAddTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Load foods and targets from localStorage on component mount or when selectedDate changes
+  // Load foods and targets from localStorage on component true or when selectedDate changes
   useEffect(() => {
     setLoadingFoods(true);
     const key = `foods_${formatDateKey(selectedDate)}`;
@@ -356,7 +356,7 @@ export default function Home() {
 
           {/* Daily Summary */}
           <div className="mt-8">
-            <DailySummary totals={totals} dailyTargets={dailyTargets} />
+            <DailySummary totals={totals} dailyTargets={dailyTargets} loading={loadingFoods} />
           </div>
         </div>
       </div>

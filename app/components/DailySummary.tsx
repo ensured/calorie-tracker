@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Totals {
   calories: number;
@@ -38,9 +39,11 @@ const nutrientSuggestions: { [key: string]: string } = {
 export default function DailySummary({
   totals,
   dailyTargets,
+  loading = false,
 }: {
   totals: Totals;
   dailyTargets: DailyTargets;
+  loading?: boolean;
 }) {
   const macroCalories = totals.protein * 4 + totals.carbs * 4 + totals.fats * 9;
   const proteinPercent = Math.round((totals.protein * 4) / Math.max(macroCalories, 1) * 100);
@@ -65,7 +68,7 @@ export default function DailySummary({
   const NutrientRow = ({ name, value, target, unit }: { name: string; value: number; target: number; unit: string; }) => {
     const percentage = target > 0 ? (value / target) * 100 : 0;
     const suggestion = nutrientSuggestions[name];
-    
+
     return (
       <div>
         <div className="flex justify-between items-center mb-1">
@@ -95,13 +98,18 @@ export default function DailySummary({
 
   return (
     <div className="p-6 bg-card text-card-foreground rounded-lg shadow-md">
-      {macroCalories > 0 && (
-          <div className="mb-6">
-           <h3 className="text-lg font-semibold">Macros Breakdown</h3>
-           <div className="text-sm text-muted-foreground">
-             {proteinPercent}% Protein | {carbPercent}% Carbs | {fatPercent}% Fats
-           </div>
+      {loading ? (
+        <div className="mb-6">
+          <Skeleton className="h-6 w-40 mb-2" />
+          <Skeleton className="h-4 w-56" />
+        </div>
+      ) : macroCalories > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold">Macros Breakdown</h3>
+          <div className="text-sm text-muted-foreground">
+            {proteinPercent}% Protein | {carbPercent}% Carbs | {fatPercent}% Fats
           </div>
+        </div>
       )}
 
       <div className="space-y-4">
