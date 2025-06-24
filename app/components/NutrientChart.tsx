@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useTheme } from 'next-themes';
 import { DailyTargets } from '@/lib/types';
@@ -33,7 +33,26 @@ interface TooltipProps {
 
 export default function NutrientChart({ nutrients, dailyTargets }: { nutrients: Nutrients; dailyTargets: DailyTargets }) {
   const { resolvedTheme } = useTheme();
+
   const isDark = resolvedTheme === 'dark';
+
+  // Skeleton loading state for client-only rendering
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => { setIsClient(true); }, []);
+
+  if (!isClient) {
+    return (
+      <div className="w-full">
+        <div className="h-64 mb-4 animate-pulse bg-zinc-200 dark:bg-zinc-800 rounded-md w-full" />
+        <div className="grid grid-cols-2 gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded h-16" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const chartData = [
     {
@@ -133,15 +152,15 @@ export default function NutrientChart({ nutrients, dailyTargets }: { nutrients: 
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis 
-              dataKey="name" 
+            <XAxis
+              dataKey="name"
               angle={-45}
               textAnchor="end"
               height={80}
               fontSize={12}
               tick={{ fill: isDark ? 'white' : 'black' }}
             />
-            <YAxis 
+            <YAxis
               label={{ value: '% Daily Value', angle: -90, position: 'insideLeft', fill: isDark ? 'white' : 'black' }}
               fontSize={12}
               tick={{ fill: isDark ? 'white' : 'black' }}
@@ -159,7 +178,7 @@ export default function NutrientChart({ nutrients, dailyTargets }: { nutrients: 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-2">
         {chartData.slice(0, 4).map((item) => (
-          <div key={item.name} className="bg-secondary/50 p-2 rounded text-center">
+          <div key={item.name} className="bg-secondary/50 p-2 rounded text-center h-16">
             <div className="text-xs text-muted-foreground">{item.name}</div>
             <div className="font-semibold text-sm">
               {item.actual} {item.unit}

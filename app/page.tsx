@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FoodSearch from './components/FoodSearch';
 import NutrientChart from './components/NutrientChart';
@@ -15,6 +15,7 @@ import { parseInput, formatDateKey } from '@/lib/utils';
 import FoodList from './components/FoodList';
 import { Food, DailyTargets } from '@/lib/types';
 import RecommendationDialog from './components/RecommendationDialog';
+import CustomHeatmap from './components/CustomHeatmap';
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const unitOptions = [
 export default function Home() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [foods, setFoods] = useState<Food[]>([]);
+  const [loadingFoods, setLoadingFoods] = useState(true);
   const [dailyTargets, setDailyTargets] = useState<DailyTargets>(defaultTargets);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editFood, setEditFood] = useState<Food | null>(null);
@@ -62,17 +64,16 @@ export default function Home() {
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [foodSearchInput, setFoodSearchInput] = useState('');
+  const foodInputRef = useRef<HTMLInputElement>(null);
+  const autoAddTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Load foods and targets from localStorage on component mount or when selectedDate changes
   useEffect(() => {
+    setLoadingFoods(true);
     const key = `foods_${formatDateKey(selectedDate)}`;
     const savedFoods = localStorage.getItem(key);
-    if (savedFoods) {
-      setFoods(JSON.parse(savedFoods));
-    } else {
-      setFoods([]);
-    }
-
+    setFoods(savedFoods ? JSON.parse(savedFoods) : []);
+    setLoadingFoods(false);
     // Load daily targets
     const savedTargets = localStorage.getItem('dailyTargets');
     if (savedTargets) {
@@ -87,7 +88,7 @@ export default function Home() {
   }, [foods, selectedDate]);
 
   const addFood = (food: Food) => {
-    setFoods([...foods, food]);
+    setFoods([food, ...foods]);
     setFoodSearchInput(''); // Clear input after adding food
   };
 
@@ -113,25 +114,6 @@ export default function Home() {
     }),
     { calories: 0, protein: 0, carbs: 0, fats: 0, vitaminA: 0, vitaminC: 0, calcium: 0, iron: 0, potassium: 0 }
   );
-
-  // Date navigation handlers
-  const goToPrevDay = () => {
-    setSelectedDate((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() - 1);
-      return d;
-    });
-  };
-  const goToNextDay = () => {
-    setSelectedDate((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() + 1);
-      return d;
-    });
-  };
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(new Date(e.target.value));
-  };
 
   const startEditFood = (index: number) => {
     setEditIndex(index);
@@ -177,10 +159,61 @@ export default function Home() {
     return response.data;
   };
 
+  // Enhanced onSuggest handler for RecommendationDialog
+  const handleSuggest = (suggestion: string) => {
+    setFoodSearchInput(suggestion);
+    // Focus and scroll input
+    setTimeout(() => {
+      foodInputRef.current?.focus();
+      foodInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 0);
+    // Clear previous timeout
+    if (autoAddTimeout.current) clearTimeout(autoAddTimeout.current);
+    // Auto-add after 10 seconds if input hasn't changed
+    autoAddTimeout.current = setTimeout(() => {
+      if (foodInputRef.current && foodInputRef.current.value === suggestion) {
+        foodInputRef.current.form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      }
+    }, 20);
+
+  };
+
+  // Prepare values for CustomHeatmap
+  function getLastNDates(n: number) {
+    const dates = [];
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    const start = new Date(end);
+    start.setDate(end.getDate() - n + 1);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(new Date(d));
+    }
+    return dates;
+  }
+  const daysToShow = 365;
+  const lastDates = getLastNDates(daysToShow);
+  const heatmapValues = lastDates.map(date => {
+    const key = `foods_${date.toISOString().slice(0, 10)}`;
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+    let count = 0;
+    if (stored) {
+      try {
+        const arr = JSON.parse(stored);
+        if (Array.isArray(arr) && arr.length > 0) {
+          count = arr.length;
+        }
+      } catch { }
+    }
+    return {
+      date: date.toISOString().slice(0, 10),
+      count,
+    };
+  });
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-background text-foreground py-8">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="sm:max-w-4xl mx-auto px-4 ">
           <div className="flex justify-between items-center mb-8">
             <h1 className="xl:text-3xl md:text-2xl  text-xl font-bold text-foreground">
               🥗 Calorie/Macros Tracker
@@ -191,34 +224,36 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Date Picker & Navigation */}
-          <div className="flex items-center gap-2 mb-6">
-            <Button variant="outline" size="icon" onClick={goToPrevDay}>&lt;</Button>
-            <input
-              type="date"
-              value={formatDateKey(selectedDate)}
-              onChange={handleDateChange}
-              className="border rounded px-2 py-1 bg-background text-foreground"
-            />
-            <Button variant="outline" size="icon" onClick={goToNextDay}>&gt;</Button>
+          {/* Year Heatmap Calendar */}
+          <div className='pl-6 mx-auto'>
+            <CustomHeatmap values={heatmapValues} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+
+          <div className="grid md:grid-cols-2 gap-8 mt-6">
             {/* Food Input Section */}
             <div className="bg-card text-card-foreground rounded-lg shadow-md p-6">
-              <h2 className="text-2xl font-semibold mb-4">Add Food</h2>
-            
-              <FoodSearch 
+              <div className='flex gap-2 justify-between items-center'>
+                <h2 className="text-xl font-semibold mb-2">Add Food</h2>
+                <div className='flex items-center justify-center gap-2'>
+                  <h2 className="font-semibold mb-1.5"><b>{foods.length}</b> items</h2>
+                  <h2 className="font-semibold mb-1.5">({formatDateKey(selectedDate)})</h2>
+                </div>
+              </div>
+
+              <FoodSearch
                 input={foodSearchInput}
                 setInput={setFoodSearchInput}
-                onSelect={addFood} 
+                onSelect={addFood}
+                ref={foodInputRef}
+
               />
 
               <FoodList
                 foods={foods}
-                selectedDate={selectedDate}
                 onRemoveFood={removeFood}
                 onStartEditFood={startEditFood}
+                loading={loadingFoods}
               />
             </div>
 
@@ -226,10 +261,10 @@ export default function Home() {
             <div className="bg-card text-card-foreground rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-semibold mb-4">Daily Nutrition</h2>
               <NutrientChart nutrients={totals} dailyTargets={dailyTargets} />
-              <RecommendationDialog 
+              <RecommendationDialog
                 totals={totals}
                 dailyTargets={dailyTargets}
-                onSuggest={setFoodSearchInput}
+                onSuggest={handleSuggest}
               />
             </div>
           </div>
@@ -286,12 +321,12 @@ export default function Home() {
                   <div>
                     <label className="text-sm font-medium">Portion</label>
                     <div className="flex items-center gap-2">
-                    <Input
+                      <Input
                         value={editPortionValue}
                         onChange={e => setEditPortionValue(e.target.value)}
                         placeholder="e.g., 0.5"
-                      required
-                      disabled={editLoading}
+                        required
+                        disabled={editLoading}
                         type="number"
                         step="any"
                         aria-label="Portion quantity"
