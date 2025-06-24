@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import FoodSearch from './components/FoodSearch';
 import NutrientChart from './components/NutrientChart';
@@ -190,25 +190,75 @@ export default function Home() {
     }
     return dates;
   }
+
   const daysToShow = 365;
-  const lastDates = getLastNDates(daysToShow);
-  const heatmapValues = lastDates.map(date => {
-    const key = `foods_${date.toISOString().slice(0, 10)}`;
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
-    let count = 0;
-    if (stored) {
-      try {
-        const arr = JSON.parse(stored);
-        if (Array.isArray(arr) && arr.length > 0) {
-          count = arr.length;
+  const lastDates = useMemo(() => getLastNDates(daysToShow), [daysToShow]);
+
+  // Recalculate heatmap values whenever foods change
+  const [heatmapValues, setHeatmapValues] = useState<Array<{ date: string, count: number }>>([]);
+
+  useEffect(() => {
+    const calculateHeatmapValues = () => {
+      return lastDates.map(date => {
+        const key = `foods_${date.toISOString().slice(0, 10)}`;
+        const stored = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+        let count = 0;
+
+        // For today's date, use the current foods state instead of localStorage
+        if (date.toISOString().slice(0, 10) === formatDateKey(selectedDate)) {
+          count = foods.length;
+        } else if (stored) {
+          try {
+            const arr = JSON.parse(stored);
+            if (Array.isArray(arr) && arr.length > 0) {
+              count = arr.length;
+            }
+          } catch { }
         }
-      } catch { }
-    }
-    return {
-      date: date.toISOString().slice(0, 10),
-      count,
+
+        return {
+          date: date.toISOString().slice(0, 10),
+          count,
+        };
+      });
     };
-  });
+
+    // Use a small timeout to ensure localStorage has been updated
+    const timeoutId = setTimeout(() => {
+      setHeatmapValues(calculateHeatmapValues());
+    }, 10);
+
+    return () => clearTimeout(timeoutId);
+  }, [foods, lastDates, selectedDate]); // Recalculate when foods change or when dates change
+
+  // Also recalculate when localStorage changes (for cross-tab sync)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const calculateHeatmapValues = () => {
+        return lastDates.map(date => {
+          const key = `foods_${date.toISOString().slice(0, 10)}`;
+          const stored = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+          let count = 0;
+          if (stored) {
+            try {
+              const arr = JSON.parse(stored);
+              if (Array.isArray(arr) && arr.length > 0) {
+                count = arr.length;
+              }
+            } catch { }
+          }
+          return {
+            date: date.toISOString().slice(0, 10),
+            count,
+          };
+        });
+      };
+      setHeatmapValues(calculateHeatmapValues());
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [lastDates]);
 
   return (
     <QueryClientProvider client={queryClient}>
